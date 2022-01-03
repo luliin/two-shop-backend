@@ -1,0 +1,9 @@
+type AppUser {
+    id: ID!
+    username: String!
+    email: String!
+    firstName: String!
+    lastName: String!
+    createdAt: String!
+    updatedAt: String!
+}

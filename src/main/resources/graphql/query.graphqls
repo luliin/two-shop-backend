@@ -1,0 +1,4 @@
+type Query {
+    users : [AppUser]
+    userById(userId: ID!) : AppUser
+}
