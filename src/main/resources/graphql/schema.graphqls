@@ -7,3 +7,32 @@ type AppUser {
     createdAt: String!
     updatedAt: String!
 }
+
+type ShoppingList {
+    id: ID!
+    name: String!
+    owner: AppUser!
+    collaborator: AppUser
+    createdAt: String!
+    updatedAt: String!
+    items: [Item]
+}
+
+type Item {
+    id: ID!
+    name: String!
+    quantity: Float
+    unit: Unit,
+    isCompleted: Boolean
+    shoppingList: ShoppingList!
+}
+
+enum Unit {
+    ST
+    CL
+    DL
+    L
+    G
+    HG
+    KG
+}
