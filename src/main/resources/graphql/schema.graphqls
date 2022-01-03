@@ -6,6 +6,8 @@ type AppUser {
     lastName: String!
     createdAt: String!
     updatedAt: String!
+    ownedShoppingLists: [ShoppingList]
+    collaboratorShoppingLists: [ShoppingList]
 }
 
 type ShoppingList {
