@@ -1,0 +1,43 @@
+version: "3"
+services:
+  postgres-twoshop:
+    container_name: postgres-twoshop
+    image: postgres
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-root}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-letmein}
+      PGDATA: /data/postgres/1/twoshop
+    volumes:
+      - postgres-twoshop:/data/postgres/1/twoshop
+    ports:
+      - "5432:5432"
+    networks:
+      - postgres-twoshop
+    restart: unless-stopped
+
+  pgadmin-twoshop:
+    container_name: pgadmin-twoshop
+    image: dpage/pgadmin4
+    env_file:
+      - .env
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-letmein}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin-twoshop:/var/lib/pgadmin/1/twoshop
+    ports:
+      - "5050:80"
+    networks:
+      - postgres-twoshop
+    restart: unless-stopped
+
+networks:
+  postgres-twoshop:
+    driver: bridge
+
+volumes:
+  postgres-twoshop:
+  pgadmin-twoshop:
