@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * ShoppingList is the Java representation of the PostgreSQL table "shopping_list".
+ * This is also the POJO equivalent of the GraphQL type ShoppingList.
+ *
  * @author Julia Wigenstedt
  * Date: 2022-01-03
  */

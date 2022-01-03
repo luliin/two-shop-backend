@@ -8,6 +8,8 @@ import lombok.Setter;
 import javax.persistence.*;
 
 /**
+ * UserRole is the Java representation of the PostgreSQL table "user_role".
+ * This entity is not exposed to the outside.
  * @author Julia Wigenstedt
  * Date: 2022-01-03
  */

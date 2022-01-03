@@ -9,6 +9,9 @@ import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 
 /**
+ * Item is the Java representation of the PostgreSQL table "item".
+ * This is also the POJO equivalent of the GraphQL type Item.
+ *
  * @author Julia Wigenstedt
  * Date: 2022-01-03
  */
