@@ -15,4 +15,5 @@ public interface ShoppingListRepository extends JpaRepository<ShoppingList, Long
     List<ShoppingList> findAllByOwner(AppUserEntity owner);
     List<ShoppingList> findAllByCollaborator(AppUserEntity collaborator);
     Optional<ShoppingList> findByIdAndOwnerOrIdAndCollaborator(Long id, AppUserEntity owner, Long id2, AppUserEntity collaborator);
+    boolean existsByOwnerAndName(AppUserEntity owner, String name);
 }

@@ -50,6 +50,9 @@ public class ShoppingListService {
         AppUserEntity owner = appUserRepository.findByUsernameOrEmail(createShoppingListInput.ownerCredential(), createShoppingListInput.ownerCredential())
                 .orElseThrow(() -> new IllegalArgumentException("Trying to create shopping list without valid owner"));
 
+        if(shoppingListRepository.existsByOwnerAndName(owner, createShoppingListInput.name())) {
+            throw new IllegalArgumentException("You can't own multiple shopping lists with the same name");
+        }
         Timestamp now = Timestamp.valueOf(LocalDateTime.now());
 
         ShoppingList newShoppingList = ShoppingList.builder()
