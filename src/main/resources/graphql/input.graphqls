@@ -5,3 +5,25 @@ input AppUserInput {
     email: String!
     password: String!
 }
+
+input ShoppingListItemInput {
+    # User credentials in the form of email or username. Temporary confirmation, will be switched to JWT
+    userCredentials : String!
+    shoppingListId : ID!
+    itemInput : ItemInput!
+}
+
+input ItemInput {
+    name: String!
+    quantity : Float
+    unit : Unit
+    isCompleted : Boolean
+}
+
+input CreateShoppingListInput {
+    # The owner's email or username. Will be switched to JWT authorization.
+    ownerCredential: String!
+    # The collaborator's email or username, if there is one. Will be switched to JWT authorization.
+    collaboratorCredential : String
+    name : String!
+}

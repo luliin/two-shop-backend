@@ -1,9 +1,6 @@
 package io.luliin.twoshopbackend.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
@@ -19,6 +16,7 @@ import javax.validation.constraints.NotBlank;
 @NoArgsConstructor
 @Entity
 @Setter
+@Getter
 @Builder
 public class Item {
 
@@ -38,6 +36,7 @@ public class Item {
     private Double quantity;
     @Enumerated(EnumType.STRING)
     private Unit unit;
+    private Boolean isCompleted;
     @ManyToOne(optional = false)
     private ShoppingList shoppingList;
 

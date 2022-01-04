@@ -1,9 +1,6 @@
 package io.luliin.twoshopbackend.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import javax.persistence.*;
 import java.sql.Timestamp;
@@ -22,6 +19,7 @@ import java.util.List;
 @NoArgsConstructor
 @Getter
 @Setter
+@Builder
 public class ShoppingList {
     @SequenceGenerator(
             name = "shopping_list_id_sequence",
@@ -53,6 +51,9 @@ public class ShoppingList {
     }
 
     public void removeItem(Item item) {
+        if((item.getShoppingList() != this)) {
+            throw new IllegalArgumentException("The item does not belong to this shopping list");
+        }
         items.remove(item);
         item.setShoppingList(null);
     }
