@@ -12,7 +12,7 @@ import javax.validation.constraints.NotBlank;
  * Basic validation on the fields are provided, along with corresponding error messages in swedish.
  * @param ownerCredential Email or username of {@link AppUser} owner.
  * @param collaboratorCredential Email or username of {@link AppUser} collaborator, if there is one.
- * @param name The name of the shopping list
+ * @param name The name of the shopping list.
  * @author Julia Wigenstedt
  * Date: 2022-01-04
  */
