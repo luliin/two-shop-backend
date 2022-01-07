@@ -18,3 +18,6 @@ spring:
   graphql:
     graphiql:
       enabled: true
+    websocket:
+      path: "/subscription"
+      connection-init-timeout:

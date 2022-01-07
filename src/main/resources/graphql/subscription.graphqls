@@ -1,0 +1,4 @@
+type Subscription {
+    subscribeToShoppingLists(shoppingListId: ID!) : ShoppingList
+    itemModified(shoppingListId: ID!) : [Item]
+}

@@ -1,4 +1,5 @@
 type Query {
     users : [AppUser]
     userById(userId: ID!) : AppUser
+    shoppingListById(shoppingListId: ID!) : ShoppingList
 }

@@ -11,8 +11,14 @@ import io.luliin.twoshopbackend.repository.ItemRepository;
 import io.luliin.twoshopbackend.repository.ShoppingListRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.ConnectableFlux;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.Sinks;
 
+import javax.annotation.PostConstruct;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -32,6 +38,22 @@ public class ShoppingListService {
     private final AppUserRepository appUserRepository;
     private final ItemRepository itemRepository;
 
+    //    private FluxSink<ShoppingList> shoppingListStream;
+    //    private ConnectableFlux<ShoppingList> shoppingListPublisher;
+    private Sinks.Many<ShoppingList> shoppingListProcessor;
+
+
+    @PostConstruct
+    private void createShoppingListSubscriptions() {
+//        Flux<ShoppingList> publisher = Flux.create(emitter -> {
+//            shoppingListStream = emitter;
+//        });
+//
+//        shoppingListPublisher = publisher.publish();
+//        shoppingListPublisher.connect();
+        shoppingListProcessor = Sinks.many().multicast().directBestEffort();
+    }
+
     public List<ShoppingList> getOwnedShoppingLists(Long userId) {
         AppUserEntity userEntity = appUserRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("No such user found"));
@@ -50,7 +72,7 @@ public class ShoppingListService {
         AppUserEntity owner = appUserRepository.findByUsernameOrEmail(createShoppingListInput.ownerCredential(), createShoppingListInput.ownerCredential())
                 .orElseThrow(() -> new IllegalArgumentException("Trying to create shopping list without valid owner"));
 
-        if(shoppingListRepository.existsByOwnerAndName(owner, createShoppingListInput.name())) {
+        if (shoppingListRepository.existsByOwnerAndName(owner, createShoppingListInput.name())) {
             throw new IllegalArgumentException("You can't own multiple shopping lists with the same name");
         }
         Timestamp now = Timestamp.valueOf(LocalDateTime.now());
@@ -64,7 +86,7 @@ public class ShoppingListService {
                 .build();
 
         //TODO : Clean up
-        if(appUserRepository.existsByUsernameOrEmail(createShoppingListInput.collaboratorCredential(), createShoppingListInput.collaboratorCredential())) {
+        if (appUserRepository.existsByUsernameOrEmail(createShoppingListInput.collaboratorCredential(), createShoppingListInput.collaboratorCredential())) {
             log.info("Collaborator present");
             newShoppingList.setCollaborator(appUserRepository.findByUsernameOrEmail(
                     createShoppingListInput.collaboratorCredential(),
@@ -90,41 +112,48 @@ public class ShoppingListService {
         log.info("Modifying shopping list {} ", shoppingList.getName());
 
 
-
-        if(removeItem != null) {
+        if (removeItem != null) {
             return removeItem(shoppingList, itemId);
-        } else if(itemId != null) {
-            Timestamp now = Timestamp.valueOf(LocalDateTime.now());
-            ShoppingList updatedShoppingList = updateItem(shoppingList, itemId, shoppingListItemInput.itemInput());
-            updatedShoppingList.setUpdatedAt(now);
-            return shoppingListRepository.save(updatedShoppingList);
+        } else if (itemId != null) {
+            return updateItem(shoppingList, itemId, shoppingListItemInput.itemInput());
         } else {
             return addItem(shoppingList, shoppingListItemInput.itemInput());
         }
     }
 
     private ShoppingList updateItem(ShoppingList shoppingList, Long itemId, ItemInput input) {
-
+        if(input==null) throw new IllegalArgumentException("Cannot update item without item input");
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("No such item"));
-        if(shoppingList != item.getShoppingList()) throw new IllegalArgumentException("The item does not belong to this shopping list");
+        if (shoppingList != item.getShoppingList())
+            throw new IllegalArgumentException("The item does not belong to this shopping list");
         log.info("Updating item with id {}", item.getId());
         item.setName((input.name() != null) ? input.name() : item.getName());
         item.setQuantity((input.quantity() != null) ? input.quantity() : item.getQuantity());
         item.setUnit((input.unit() != null) ? input.unit() : item.getUnit());
         item.setIsCompleted((input.isCompleted() != null) ? input.isCompleted() : item.getIsCompleted());
-        return itemRepository.save(item).getShoppingList();
+
+        Timestamp now = Timestamp.valueOf(LocalDateTime.now());
+        ShoppingList updatedShoppingList = itemRepository.save(item).getShoppingList();
+        updatedShoppingList.setUpdatedAt(now);
+
+        final ShoppingList savedList = shoppingListRepository.save(updatedShoppingList);
+        publish(savedList);
+
+        return savedList;
     }
 
     private ShoppingList removeItem(ShoppingList shoppingList, Long itemId) {
-        if(itemId == null) throw new IllegalArgumentException("Can not delete item. Id was null.");
+        if (itemId == null) throw new IllegalArgumentException("Can not delete item. Id was null.");
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("No such item"));
         shoppingList.removeItem(item);
         log.info("Removing item with id {}", item.getId());
         Timestamp now = Timestamp.valueOf(LocalDateTime.now());
         shoppingList.setUpdatedAt(now);
-        return shoppingListRepository.save(shoppingList);
+        final ShoppingList updatedList = shoppingListRepository.save(shoppingList);
+        publish(updatedList);
+        return updatedList;
     }
 
     private ShoppingList addItem(ShoppingList shoppingList, ItemInput input) {
@@ -139,8 +168,41 @@ public class ShoppingListService {
         Timestamp now = Timestamp.valueOf(LocalDateTime.now());
         shoppingList.setUpdatedAt(now);
         log.info("Adding new item with to shopping list with id {}", shoppingList.getId());
-        return shoppingListRepository.save(shoppingList);
+        final ShoppingList updatedList = shoppingListRepository.save(shoppingList);
+        publish(updatedList);
+        return updatedList;
     }
 
+//    public Publisher<ShoppingList> getShoppingListPublisher() {
+//        return shoppingListPublisher;
+//    }
+//
+//
+//    public Publisher<ShoppingList> getShoppingListPublisher(Long shoppingListId) {
+//        return shoppingListPublisher.
+//                filter(shoppingList -> {
+//                    log.info("Publishing individual subscription of list with id {}", shoppingListId);
+//                    return shoppingList.getId().equals(shoppingListId);
+//                });
+//    }
 
+
+    public void publish(ShoppingList shoppingList) {
+        log.info("Shopping list updated");
+        shoppingListProcessor.tryEmitNext(shoppingList);
+    }
+
+    public Flux<List<Item>> getShoppingListPublisher(Long shoppingListId) {
+        log.info("In getShoppingListPublisher {}", shoppingListId);
+        return shoppingListProcessor.asFlux()
+                .filter(shoppingList -> shoppingListId.equals(shoppingList.getId()))
+                .map(shoppingList -> {
+                    log.info("Publishing individual subscription update for Shopping list {}", shoppingList.getName());
+                    return shoppingList.getItems();
+                });
+    }
+
+    public ShoppingList getShoppingListById(Long shoppingListId) {
+        return shoppingListRepository.getById(shoppingListId);
+    }
 }

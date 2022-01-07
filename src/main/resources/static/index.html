@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>GraphQL over WebSocket</title>
+    <script type="text/javascript" src="https://unpkg.com/graphql-ws/umd/graphql-ws.js"></script>
+
+    <script>
+
+        // const baseUrl = "wss://new-graphql-test.herokuapp.com";
+        const baseUrl = "ws://localhost:8080";
+
+        let restartRequestedBeforeConnected = false;
+        let gracefullyRestart = () => {
+            restartRequestedBeforeConnected = true;
+        };
+
+        // just copy and paste this
+        class Graphql {
+
+            constructor(url) {
+                this.client = graphqlWs.createClient({
+                    url: url,
+                    retryWait: async function setTimeOut() {
+                        await new Promise((resolve) =>
+                            setTimeout(resolve, 1000 + Math.random() * 3000),
+                        );
+                    }
+                })
+
+            }
+
+            subscribe(q, callback) {
+                this.client.subscribe(
+                    {query: q},
+                    {
+                        next: callback,
+                        error: (err) => {
+                            console.error('there is an error', err)
+                            console.log(err)
+                        },
+                        complete: () => console.log('subscription is complete.'),
+                    },
+                );
+
+            }
+
+            async query(queryString) {
+                return await new Promise((resolve, reject) => {
+                    let result;
+                    this.client.subscribe(
+                        {
+                            query: queryString,
+                        },
+                        {
+                            next: (data) => (result = data),
+                            error: reject,
+                            complete: () => resolve(result),
+                        },
+                    );
+                })
+
+            }
+
+
+        }
+
+        class ShoppingListManagement {
+
+            constructor() {
+                this.client = new Graphql(baseUrl+'/subscription')
+            }
+
+            async readUsers() {
+                const q = `
+                 { users { id, username } }
+                `
+                return (await this.client.query(q)) ['data']['users']
+            }
+
+            subscribeToUsers(callback) {
+                const q = `
+                subscription {
+                    subscribeToUsers {
+                        id
+                        username
+                    }
+                }
+                `
+                this.client.subscribe(q, (next) => {
+                    const result = next ['data']['subscribeToUsers']
+                    callback(result)
+                });
+            }
+
+            async readShoppingList(shoppingListId) {
+                const q = `
+                 { shoppingListById(shoppingListId) { id, username } }
+                `
+                return (await this.client.query(q)) ['data']['users']
+            }
+
+            itemsAdded(shoppingListId, callback) {
+                const q = `
+                subscription {
+                    itemModified(shoppingListId: ${shoppingListId}) {
+
+
+                        id
+                        name
+                        quantity
+                        unit
+                        isCompleted
+                        shoppingList {
+                            id
+                            name
+                        }
+
+
+                    }
+                }
+                `
+                this.client.subscribe(q, (next) => {
+                    const result = next ['data']['itemModified']
+                    callback(result)
+                })
+            }
+
+            // itemsAdded(shoppingListId, callback) {
+            //     const q = `
+            //     subscription {
+            //         itemAdded(shoppingListId: ${shoppingListId}) {
+            //             id
+            //             name
+            //             items {
+            //             id
+            //             name
+            //             quantity
+            //             unit
+            //             completed
+            //             }
+            //         }
+            //     }
+            //     `
+            //     this.client.subscribe(q, (next) => {
+            //         const result = next ['data']['itemAdded']
+            //         callback(result)
+            //     })
+            // }
+
+
+
+            subscribeToCustomerUpdates(shoppingListId, callback) {
+                const q = `
+                subscription {
+                    shoppingListEvents( shoppingListId : ${shoppingListId} ) {
+                        id, name,
+                        items {
+                            id
+                            name
+                            unit
+                            completed
+                         }
+                    }
+                }
+                `
+                this.client.subscribe(q, (next) => {
+                    const result = next ['data']['shoppingListEvents']
+                    callback(result)
+                });
+            }
+        }
+
+        window.addEventListener('load', async () => {
+            console.log("Inside load")
+            const shoppingListManagement = new ShoppingListManagement()
+            await shoppingListManagement.itemsAdded(1, (event) => console.log(event))
+
+            // await shoppingListManagement.subscribeToCustomerUpdates(1, (event) => {
+            //     console.log(event.shoppingList.id + ' = '
+            //         + event.shoppingList.name + ' @ ' + new Date())
+            // })
+            // await shoppingListManagement.addUser(
+            //      {
+            //         "username": "Lekkit",
+            //         "password": "password",
+            //         "email": "lekkit@email.com"
+            //     })
+            const users = await shoppingListManagement.readUsers()
+            console.log('users: ', users)
+        })
+
+    </script>
+</head>
+<body>
+</body>
+</html>
