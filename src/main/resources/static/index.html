@@ -68,7 +68,7 @@
         class ShoppingListManagement {
 
             constructor() {
-                this.client = new Graphql(baseUrl+'/subscription')
+                this.client = new Graphql(baseUrl + '/subscription')
             }
 
             async readUsers() {
@@ -95,9 +95,21 @@
 
             async readShoppingList(shoppingListId) {
                 const q = `
-                 { shoppingListById(shoppingListId) { id, username } }
+                 {
+                      shoppingListById(shoppingListId: 1) {
+                        id
+                        name
+                        items {
+                          id
+                          name
+                          quantity
+                          unit
+                          isCompleted
+                        }
+                      }
+                    }
                 `
-                return (await this.client.query(q)) ['data']['users']
+                return (await this.client.query(q)) ['data']
             }
 
             itemsAdded(shoppingListId, callback) {
@@ -149,7 +161,6 @@
             // }
 
 
-
             subscribeToCustomerUpdates(shoppingListId, callback) {
                 const q = `
                 subscription {
@@ -174,6 +185,8 @@
         window.addEventListener('load', async () => {
             console.log("Inside load")
             const shoppingListManagement = new ShoppingListManagement()
+            const shoppingList = await shoppingListManagement.readShoppingList(1);
+            console.log('Shopping list: ', shoppingList)
             await shoppingListManagement.itemsAdded(1, (event) => console.log(event))
 
             // await shoppingListManagement.subscribeToCustomerUpdates(1, (event) => {
@@ -188,6 +201,7 @@
             //     })
             const users = await shoppingListManagement.readUsers()
             console.log('users: ', users)
+
         })
 
     </script>
