@@ -112,7 +112,7 @@ public class ShoppingListService {
         log.info("Modifying shopping list {} ", shoppingList.getName());
 
 
-        if (removeItem != null) {
+        if (removeItem != null && removeItem) {
             return removeItem(shoppingList, itemId);
         } else if (itemId != null) {
             return updateItem(shoppingList, itemId, shoppingListItemInput.itemInput());
