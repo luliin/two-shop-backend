@@ -21,3 +21,5 @@ spring:
     websocket:
       path: "/subscription"
       connection-init-timeout:
+    cors:
+      allowed-origins: "http://localhost:3000/"
