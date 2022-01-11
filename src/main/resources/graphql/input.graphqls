@@ -10,7 +10,7 @@ input ShoppingListItemInput {
     # User credentials in the form of email or username. Temporary confirmation, will be switched to JWT
     userCredentials : String!
     shoppingListId : ID!
-    itemInput : ItemInput!
+    itemInput : ItemInput
 }
 
 input ItemInput {
