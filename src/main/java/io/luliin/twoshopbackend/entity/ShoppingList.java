@@ -43,6 +43,7 @@ public class ShoppingList {
     @Column(nullable = false)
     private Timestamp updatedAt;
     @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL, mappedBy = "shoppingList")
+    @OrderBy("id ASC")
     List<Item> items = new ArrayList<>();
 
     public void addItem(Item item) {
@@ -51,7 +52,7 @@ public class ShoppingList {
     }
 
     public void removeItem(Item item) {
-        if((item.getShoppingList() != this)) {
+        if ((item.getShoppingList() != this)) {
             throw new IllegalArgumentException("The item does not belong to this shopping list");
         }
         items.remove(item);

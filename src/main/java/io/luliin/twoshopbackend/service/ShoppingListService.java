@@ -11,11 +11,8 @@ import io.luliin.twoshopbackend.repository.ItemRepository;
 import io.luliin.twoshopbackend.repository.ShoppingListRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Sinks;
 
 import javax.annotation.PostConstruct;
@@ -38,19 +35,11 @@ public class ShoppingListService {
     private final AppUserRepository appUserRepository;
     private final ItemRepository itemRepository;
 
-    //    private FluxSink<ShoppingList> shoppingListStream;
-    //    private ConnectableFlux<ShoppingList> shoppingListPublisher;
     private Sinks.Many<ShoppingList> shoppingListProcessor;
 
 
     @PostConstruct
     private void createShoppingListSubscriptions() {
-//        Flux<ShoppingList> publisher = Flux.create(emitter -> {
-//            shoppingListStream = emitter;
-//        });
-//
-//        shoppingListPublisher = publisher.publish();
-//        shoppingListPublisher.connect();
         shoppingListProcessor = Sinks.many().multicast().directBestEffort();
     }
 
@@ -173,20 +162,6 @@ public class ShoppingListService {
         return updatedList;
     }
 
-//    public Publisher<ShoppingList> getShoppingListPublisher() {
-//        return shoppingListPublisher;
-//    }
-//
-//
-//    public Publisher<ShoppingList> getShoppingListPublisher(Long shoppingListId) {
-//        return shoppingListPublisher.
-//                filter(shoppingList -> {
-//                    log.info("Publishing individual subscription of list with id {}", shoppingListId);
-//                    return shoppingList.getId().equals(shoppingListId);
-//                });
-//    }
-
-
     public void publish(ShoppingList shoppingList) {
         log.info("Shopping list updated");
         shoppingListProcessor.tryEmitNext(shoppingList);
@@ -203,6 +178,6 @@ public class ShoppingListService {
     }
 
     public ShoppingList getShoppingListById(Long shoppingListId) {
-        return shoppingListRepository.getById(shoppingListId);
+        return shoppingListRepository.findById(shoppingListId).orElse(null);
     }
 }
