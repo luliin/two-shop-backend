@@ -24,6 +24,9 @@ spring:
     cors:
       allowed-origins: "http://localhost:3000/"
   rabbitmq:
-    password: ${POSTGRES_PASSWORD}
-    username: ${POSTGRES_USER}
+    host: ${{secrets.RABBIT_HOST}}
+    port: 5672
+    password: ${{secrets.RABBIT_PASSWORD}}
+    username: ${{secrets.RABBIT_USERNAME}}
+    addresses: ${{secrets.RABBIT_URL}}
 
