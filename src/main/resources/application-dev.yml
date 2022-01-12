@@ -24,14 +24,10 @@ spring:
     cors:
       allowed-origins: "http://localhost:3000/"
   rabbitmq:
-    host: ${RABBIT_HOST}
-    port: 5672
-    password: ${RABBIT_PASSWORD}
-    username: ${RABBIT_USERNAME}
-    addresses: ${RABBIT_URL}
+    password: ${POSTGRES_PASSWORD}
+    username: ${POSTGRES_USER}
     listener:
       direct:
-        default-requeue-rejected: "false";
+        default-requeue-rejected: false
       simple:
-        default-requeue-rejected: "false";
-
+        default-requeue-rejected: false
