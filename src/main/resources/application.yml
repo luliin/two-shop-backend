@@ -29,4 +29,9 @@ spring:
     password: ${RABBIT_PASSWORD}
     username: ${RABBIT_USERNAME}
     addresses: ${RABBIT_URL}
+    listener:
+      direct:
+        default-requeue-rejected: "false";
+      simple:
+        default-requeue-rejected: "false";
 
