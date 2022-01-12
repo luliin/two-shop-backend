@@ -173,9 +173,14 @@ public class ShoppingListService {
     public void publish(Long shoppingListId) {
         ShoppingList shoppingList = shoppingListRepository
                 .findById(shoppingListId)
-                .orElseThrow(() -> new IllegalArgumentException("Cannot resolve subscription. No such shopping list."));
-        log.info(" >>> ShoppingListService : Shopping list {} updated", shoppingListId);
-        shoppingListProcessor.tryEmitNext(shoppingList);
+                .orElse(null);
+        if(shoppingList!= null)  {
+            log.info(" >>> ShoppingListService : Shopping list {} updated", shoppingListId);
+            shoppingListProcessor.tryEmitNext(shoppingList);
+        } else {
+            log.info(" >>> There is no shopping list with id: {}", shoppingListId);
+        }
+
     }
 
     public Flux<List<Item>> getShoppingListPublisher(Long shoppingListId) {
