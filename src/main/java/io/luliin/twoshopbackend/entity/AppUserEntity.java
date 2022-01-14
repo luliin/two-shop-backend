@@ -57,7 +57,7 @@ public class AppUserEntity implements UserDetails {
     private Timestamp createdAt;
     @Column(nullable = false)
     private Timestamp updatedAt;
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     List<UserRole> roles = new ArrayList<>();
 
 
@@ -96,23 +96,34 @@ public class AppUserEntity implements UserDetails {
         }
     }
 
+
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+    @Override
+    public String getUsername() {
+        return username;
+    }
+
     @Override
     public boolean isAccountNonExpired() {
-        return false;
+        return true;
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return false;
+        return true;
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return false;
+        return true;
     }
 
     @Override
     public boolean isEnabled() {
-        return false;
+        return true;
     }
 }
