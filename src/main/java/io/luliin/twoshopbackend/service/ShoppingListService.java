@@ -1,5 +1,6 @@
 package io.luliin.twoshopbackend.service;
 
+import io.luliin.twoshopbackend.dto.AppUser;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.Item;
 import io.luliin.twoshopbackend.entity.ShoppingList;
@@ -13,6 +14,7 @@ import io.luliin.twoshopbackend.repository.ShoppingListRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
@@ -47,15 +49,16 @@ public class ShoppingListService {
         shoppingListProcessor = Sinks.many().multicast().directBestEffort();
     }
 
-    public List<ShoppingList> getOwnedShoppingLists(Long userId) {
-        AppUserEntity userEntity = appUserRepository.findById(userId)
+    @PreAuthorize("authentication.principal == #appUser.username or hasAnyRole({'ROLE_ADMIN', 'ROLE_SUPER_ADMIN'})")
+    public List<ShoppingList> getOwnedShoppingLists(AppUser appUser) {
+        AppUserEntity userEntity = appUserRepository.findById(appUser.getId())
                 .orElseThrow(() -> new IllegalArgumentException("No such user found"));
         return shoppingListRepository.findAllByOwner(userEntity);
 
     }
 
-    public List<ShoppingList> getCollaboratorShoppingLists(Long userId) {
-        AppUserEntity userEntity = appUserRepository.findById(userId)
+    public List<ShoppingList> getCollaboratorShoppingLists(AppUser appUser) {
+        AppUserEntity userEntity = appUserRepository.findById(appUser.getId())
                 .orElseThrow(() -> new IllegalArgumentException("No such user found"));
         return shoppingListRepository.findAllByCollaborator(userEntity);
     }
