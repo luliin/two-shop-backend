@@ -67,7 +67,7 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
     protected void onUnsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) {
         log.error("onUnsuccessfulAuthentication {}", failed.getMessage());
         log.info("{}", Arrays.asList(request.getCookies()));
-        response.addCookie(new Cookie("jwt_token",""));
+//        response.addCookie(new Cookie("jwt_token",""));
         throw failed;
     }
 
