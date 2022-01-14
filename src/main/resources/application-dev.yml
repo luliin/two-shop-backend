@@ -32,8 +32,7 @@ spring:
       simple:
         default-requeue-rejected: false
 
-
 security:
-  signingkey: ${SECURITY_SIGNING_KEY}
+  signingKey: ${SECURITY_SIGNING_KEY}
   algorithm: "HS512"
   validMinutes: 4320
