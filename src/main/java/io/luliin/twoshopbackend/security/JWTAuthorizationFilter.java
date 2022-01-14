@@ -4,7 +4,6 @@ import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -13,6 +12,7 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -65,7 +65,9 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
      */
     @Override
     protected void onUnsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) {
-        log.info("onUnsuccessfulAuthentication {}", failed.getMessage());
+        log.error("onUnsuccessfulAuthentication {}", failed.getMessage());
+        log.info("{}", Arrays.asList(request.getCookies()));
+        response.addCookie(new Cookie("jwt_token",""));
         throw failed;
     }
 
