@@ -41,7 +41,7 @@ public class JWTIssuer {
     }
 
     public Claims validate(String token) {
-        log.info("Verifying token");
+        log.info(" >>> Validating JWT token");
 
         return Jwts.parserBuilder()
                 .setSigningKey(key).build()
