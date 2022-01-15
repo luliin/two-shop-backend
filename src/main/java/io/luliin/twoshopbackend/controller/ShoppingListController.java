@@ -4,6 +4,7 @@ import io.luliin.twoshopbackend.dto.AppUser;
 import io.luliin.twoshopbackend.entity.Item;
 import io.luliin.twoshopbackend.entity.ShoppingList;
 import io.luliin.twoshopbackend.input.CreateShoppingListInput;
+import io.luliin.twoshopbackend.input.InviteCollaboratorInput;
 import io.luliin.twoshopbackend.input.ShoppingListItemInput;
 import io.luliin.twoshopbackend.service.ShoppingListService;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import org.springframework.graphql.data.method.annotation.*;
 import org.springframework.stereotype.Controller;
 
 import javax.validation.Valid;
+import java.security.Principal;
 import java.util.List;
 
 /**
@@ -51,6 +53,11 @@ public class ShoppingListController {
                                                 @Argument Boolean removeItem,
                                                 @Valid @Argument ShoppingListItemInput shoppingListItemInput) {
         return shoppingListService.modifyShoppingListItems(itemId, removeItem, shoppingListItemInput);
+    }
+
+    @MutationMapping
+    public ShoppingList inviteCollaborator(@Valid @Argument InviteCollaboratorInput inviteCollaboratorInput, Principal principal) {
+        return shoppingListService.addCollaborator(inviteCollaboratorInput, principal.getName());
     }
 
 //    @SubscriptionMapping

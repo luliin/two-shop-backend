@@ -27,3 +27,8 @@ input CreateShoppingListInput {
     collaboratorCredential : String
     name : String!
 }
+
+input InviteCollaboratorInput {
+    shoppingListId: ID!
+    collaboratorCredential: String!
+}
