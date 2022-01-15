@@ -1,6 +1,8 @@
 package io.luliin.twoshopbackend.entity;
 
 import lombok.*;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import javax.persistence.*;
 import java.sql.Timestamp;
@@ -43,6 +45,7 @@ public class ShoppingList {
     @Column(nullable = false)
     private Timestamp updatedAt;
     @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL, mappedBy = "shoppingList", fetch = FetchType.EAGER)
+    @Fetch(value = FetchMode.SELECT)
     @OrderBy("id ASC")
     List<Item> items = new ArrayList<>();
 

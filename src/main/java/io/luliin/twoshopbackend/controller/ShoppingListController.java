@@ -28,12 +28,12 @@ public class ShoppingListController {
 
     @SchemaMapping(typeName = "AppUser")
     public List<ShoppingList> ownedShoppingLists(AppUser appUser) {
-        return shoppingListService.getOwnedShoppingLists(appUser.getId());
+        return shoppingListService.getOwnedShoppingLists(appUser);
     }
 
     @SchemaMapping(typeName = "AppUser")
     public List<ShoppingList> collaboratorShoppingLists(AppUser appUser) {
-        return shoppingListService.getCollaboratorShoppingLists(appUser.getId());
+        return shoppingListService.getCollaboratorShoppingLists(appUser);
     }
 
     @QueryMapping
