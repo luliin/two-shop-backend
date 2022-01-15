@@ -5,6 +5,7 @@ import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.Item;
 import io.luliin.twoshopbackend.entity.ShoppingList;
 import io.luliin.twoshopbackend.input.CreateShoppingListInput;
+import io.luliin.twoshopbackend.input.InviteCollaboratorInput;
 import io.luliin.twoshopbackend.input.ItemInput;
 import io.luliin.twoshopbackend.input.ShoppingListItemInput;
 import io.luliin.twoshopbackend.messaging.RabbitSender;
@@ -14,6 +15,7 @@ import io.luliin.twoshopbackend.repository.ShoppingListRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -118,7 +120,7 @@ public class ShoppingListService {
     }
 
     private ShoppingList updateItem(ShoppingList shoppingList, Long itemId, ItemInput input) {
-        if(input==null) throw new IllegalArgumentException("Cannot update item without item input");
+        if (input == null) throw new IllegalArgumentException("Cannot update item without item input");
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("No such item"));
         if (shoppingList != item.getShoppingList())
@@ -177,7 +179,7 @@ public class ShoppingListService {
         ShoppingList shoppingList = shoppingListRepository
                 .findById(shoppingListId)
                 .orElse(null);
-        if(shoppingList!= null)  {
+        if (shoppingList != null) {
             log.info(" >>> ShoppingListService : Shopping list {} updated", shoppingListId);
             shoppingListProcessor.tryEmitNext(shoppingList);
         } else {
@@ -198,5 +200,34 @@ public class ShoppingListService {
 
     public ShoppingList getShoppingListById(Long shoppingListId) {
         return shoppingListRepository.findById(shoppingListId).orElse(null);
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    public ShoppingList addCollaborator(InviteCollaboratorInput inviteCollaboratorInput, String username) {
+
+        AppUserEntity owner = appUserRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("An unexpected error occurred. " +
+                        "Could not fetch user information from authenticated user"));
+        if (!shoppingListRepository.existsByIdAndOwner(inviteCollaboratorInput.shoppingListId(), owner)) {
+            log.error("Only the owner of a shopping list may add a collaborator");
+            throw new AccessDeniedException("Only the owner of a shopping list may add a collaborator");
+        }
+
+        ShoppingList shoppingList = shoppingListRepository.findById(inviteCollaboratorInput.shoppingListId())
+                .orElseThrow(() -> new RuntimeException("An unexpected error occurred."));
+
+        if (shoppingList.getCollaborator() != null) {
+            throw new IllegalArgumentException("There is already a collaborator on this list. Please remove them first.");
+        }
+
+        AppUserEntity collaborator = appUserRepository.
+                findByUsernameOrEmail(inviteCollaboratorInput.collaboratorCredential(),
+                        inviteCollaboratorInput.collaboratorCredential())
+                .orElseThrow(() -> new IllegalArgumentException("No such user"));
+        if (owner.equals(collaborator)) {
+            throw new IllegalArgumentException("You can't add yourself as a collaborator");
+        }
+
+        return shoppingListRepository.save(shoppingList.setCollaborator(collaborator));
     }
 }

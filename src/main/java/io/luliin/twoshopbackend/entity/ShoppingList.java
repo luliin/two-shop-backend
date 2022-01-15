@@ -1,6 +1,7 @@
 package io.luliin.twoshopbackend.entity;
 
 import lombok.*;
+import lombok.experimental.Accessors;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 
@@ -22,6 +23,7 @@ import java.util.List;
 @Getter
 @Setter
 @Builder
+@Accessors(chain = true)
 public class ShoppingList {
     @SequenceGenerator(
             name = "shopping_list_id_sequence",
