@@ -42,7 +42,7 @@ public class ShoppingList {
     private Timestamp createdAt;
     @Column(nullable = false)
     private Timestamp updatedAt;
-    @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL, mappedBy = "shoppingList")
+    @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL, mappedBy = "shoppingList", fetch = FetchType.EAGER)
     @OrderBy("id ASC")
     List<Item> items = new ArrayList<>();
 

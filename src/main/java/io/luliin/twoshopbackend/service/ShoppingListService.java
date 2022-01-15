@@ -6,11 +6,13 @@ import io.luliin.twoshopbackend.entity.ShoppingList;
 import io.luliin.twoshopbackend.input.CreateShoppingListInput;
 import io.luliin.twoshopbackend.input.ItemInput;
 import io.luliin.twoshopbackend.input.ShoppingListItemInput;
+import io.luliin.twoshopbackend.messaging.RabbitSender;
 import io.luliin.twoshopbackend.repository.AppUserRepository;
 import io.luliin.twoshopbackend.repository.ItemRepository;
 import io.luliin.twoshopbackend.repository.ShoppingListRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
@@ -36,6 +38,8 @@ public class ShoppingListService {
     private final ItemRepository itemRepository;
 
     private Sinks.Many<ShoppingList> shoppingListProcessor;
+
+    private final RabbitSender rabbitSender;
 
 
     @PostConstruct
@@ -127,7 +131,8 @@ public class ShoppingListService {
         updatedShoppingList.setUpdatedAt(now);
 
         final ShoppingList savedList = shoppingListRepository.save(updatedShoppingList);
-        publish(savedList);
+//        publish(savedList);
+        rabbitSender.publishShoppingListSubscription(savedList);
 
         return savedList;
     }
@@ -141,7 +146,8 @@ public class ShoppingListService {
         Timestamp now = Timestamp.valueOf(LocalDateTime.now());
         shoppingList.setUpdatedAt(now);
         final ShoppingList updatedList = shoppingListRepository.save(shoppingList);
-        publish(updatedList);
+//        publish(updatedList);
+        rabbitSender.publishShoppingListSubscription(updatedList);
         return updatedList;
     }
 
@@ -158,13 +164,23 @@ public class ShoppingListService {
         shoppingList.setUpdatedAt(now);
         log.info("Adding new item with to shopping list with id {}", shoppingList.getId());
         final ShoppingList updatedList = shoppingListRepository.save(shoppingList);
-        publish(updatedList);
+//        publish(updatedList);
+        rabbitSender.publishShoppingListSubscription(updatedList);
         return updatedList;
     }
 
-    public void publish(ShoppingList shoppingList) {
-        log.info("Shopping list updated");
-        shoppingListProcessor.tryEmitNext(shoppingList);
+    @RabbitListener(queues = "#{queue1.name}")
+    public void publish(Long shoppingListId) {
+        ShoppingList shoppingList = shoppingListRepository
+                .findById(shoppingListId)
+                .orElse(null);
+        if(shoppingList!= null)  {
+            log.info(" >>> ShoppingListService : Shopping list {} updated", shoppingListId);
+            shoppingListProcessor.tryEmitNext(shoppingList);
+        } else {
+            log.info(" >>> There is no shopping list with id: {}", shoppingListId);
+        }
+
     }
 
     public Flux<List<Item>> getShoppingListPublisher(Long shoppingListId) {
