@@ -47,8 +47,9 @@ public class ShoppingListController {
     }
 
     @MutationMapping
-    public ShoppingList createShoppingList(@Valid @Argument CreateShoppingListInput createShoppingListInput) {
-        return shoppingListService.createShoppingList(createShoppingListInput);
+    public ShoppingList createShoppingList(@Valid @Argument CreateShoppingListInput createShoppingListInput,
+                                           Principal principal) {
+        return shoppingListService.createShoppingList(createShoppingListInput, principal.getName());
     }
 
     @MutationMapping

@@ -62,16 +62,18 @@ public class ShoppingListService {
 
     }
 
+    @PreAuthorize("authentication.principal == #appUser.username or hasAnyRole({'ROLE_ADMIN', 'ROLE_SUPER_ADMIN'})")
     public List<ShoppingList> getCollaboratorShoppingLists(AppUser appUser) {
         AppUserEntity userEntity = appUserRepository.findById(appUser.getId())
                 .orElseThrow(() -> new IllegalArgumentException("No such user found"));
         return shoppingListRepository.findAllByCollaborator(userEntity);
     }
 
-    public ShoppingList createShoppingList(CreateShoppingListInput createShoppingListInput) {
+    @PreAuthorize("isAuthenticated()")
+    public ShoppingList createShoppingList(CreateShoppingListInput createShoppingListInput, String username) {
 
-        AppUserEntity owner = appUserRepository.findByUsernameOrEmail(createShoppingListInput.ownerCredential(), createShoppingListInput.ownerCredential())
-                .orElseThrow(() -> new IllegalArgumentException("Trying to create shopping list without valid owner"));
+        AppUserEntity owner = sharedService.getUser(username,
+                "Trying to create shopping list without valid owner");
 
         if (shoppingListRepository.existsByOwnerAndName(owner, createShoppingListInput.name())) {
             throw new IllegalArgumentException("You can't own multiple shopping lists with the same name");
