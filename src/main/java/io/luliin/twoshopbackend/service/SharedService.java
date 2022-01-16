@@ -6,6 +6,7 @@ import io.luliin.twoshopbackend.repository.AppUserRepository;
 import io.luliin.twoshopbackend.repository.ShoppingListRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
@@ -36,6 +37,8 @@ public class SharedService {
     }
 
     @PreAuthorize("isAuthenticated()")
+    @PostAuthorize("returnObject.owner.username == authentication.principal " +
+            "or returnObject.collaborator != null and returnObject.collaborator.username == authentication.principal")
     public ShoppingList shoppingListById(Long shoppingListId, String errorMessage) {
         return shoppingListRepository.findById(shoppingListId)
                 .orElseThrow(() -> new RuntimeException(errorMessage));
