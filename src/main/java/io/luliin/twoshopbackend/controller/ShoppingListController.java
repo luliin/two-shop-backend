@@ -1,11 +1,13 @@
 package io.luliin.twoshopbackend.controller;
 
 import io.luliin.twoshopbackend.dto.AppUser;
+import io.luliin.twoshopbackend.dto.ModifiedShoppingList;
 import io.luliin.twoshopbackend.entity.Item;
 import io.luliin.twoshopbackend.entity.ShoppingList;
 import io.luliin.twoshopbackend.input.CreateShoppingListInput;
-import io.luliin.twoshopbackend.input.InviteCollaboratorInput;
+import io.luliin.twoshopbackend.input.HandleCollaboratorInput;
 import io.luliin.twoshopbackend.input.ShoppingListItemInput;
+import io.luliin.twoshopbackend.service.SharedService;
 import io.luliin.twoshopbackend.service.ShoppingListService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +29,7 @@ import java.util.List;
 public class ShoppingListController {
 
     private final ShoppingListService shoppingListService;
+    private final SharedService sharedService;
 
     @SchemaMapping(typeName = "AppUser")
     public List<ShoppingList> ownedShoppingLists(AppUser appUser) {
@@ -40,7 +43,7 @@ public class ShoppingListController {
 
     @QueryMapping
     public ShoppingList shoppingListById(@Argument Long shoppingListId) {
-        return shoppingListService.getShoppingListById(shoppingListId);
+        return sharedService.shoppingListById(shoppingListId, "No such shopping list");
     }
 
     @MutationMapping
@@ -56,15 +59,16 @@ public class ShoppingListController {
     }
 
     @MutationMapping
-    public ShoppingList inviteCollaborator(@Valid @Argument InviteCollaboratorInput inviteCollaboratorInput, Principal principal) {
-        return shoppingListService.addCollaborator(inviteCollaboratorInput, principal.getName());
+    public ModifiedShoppingList inviteCollaborator(@Valid @Argument HandleCollaboratorInput handleCollaboratorInput,
+                                                   Principal principal) {
+        return shoppingListService.addCollaborator(handleCollaboratorInput, principal.getName());
     }
 
-//    @SubscriptionMapping
-//    public Publisher<ShoppingList> subscribeToShoppingLists(@Argument Long shoppingListId) {
-//        log.info("In subscription mapping for shoppingListId {}", shoppingListId);
-//        return shoppingListService.getShoppingListPublisher();
-//    }
+    @MutationMapping
+    public ModifiedShoppingList removeCollaborator(@Valid @Argument HandleCollaboratorInput handleCollaboratorInput,
+                                                   Principal principal) {
+        return shoppingListService.removeCollaborator(handleCollaboratorInput, principal.getName());
+    }
 
     @SubscriptionMapping
     public Publisher<List<Item>> itemModified(@Argument Long shoppingListId) {

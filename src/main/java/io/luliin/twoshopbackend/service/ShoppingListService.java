@@ -1,11 +1,12 @@
 package io.luliin.twoshopbackend.service;
 
 import io.luliin.twoshopbackend.dto.AppUser;
+import io.luliin.twoshopbackend.dto.ModifiedShoppingList;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.Item;
 import io.luliin.twoshopbackend.entity.ShoppingList;
 import io.luliin.twoshopbackend.input.CreateShoppingListInput;
-import io.luliin.twoshopbackend.input.InviteCollaboratorInput;
+import io.luliin.twoshopbackend.input.HandleCollaboratorInput;
 import io.luliin.twoshopbackend.input.ItemInput;
 import io.luliin.twoshopbackend.input.ShoppingListItemInput;
 import io.luliin.twoshopbackend.messaging.RabbitSender;
@@ -40,6 +41,8 @@ public class ShoppingListService {
     public final ShoppingListRepository shoppingListRepository;
     private final AppUserRepository appUserRepository;
     private final ItemRepository itemRepository;
+
+    private final SharedService sharedService;
 
     private Sinks.Many<ShoppingList> shoppingListProcessor;
 
@@ -198,36 +201,60 @@ public class ShoppingListService {
                 });
     }
 
-    public ShoppingList getShoppingListById(Long shoppingListId) {
-        return shoppingListRepository.findById(shoppingListId).orElse(null);
-    }
 
     @PreAuthorize("isAuthenticated()")
-    public ShoppingList addCollaborator(InviteCollaboratorInput inviteCollaboratorInput, String username) {
+    public ModifiedShoppingList addCollaborator(HandleCollaboratorInput handleCollaboratorInput, String username) {
 
-        AppUserEntity owner = appUserRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("An unexpected error occurred. " +
-                        "Could not fetch user information from authenticated user"));
-        if (!shoppingListRepository.existsByIdAndOwner(inviteCollaboratorInput.shoppingListId(), owner)) {
+        AppUserEntity owner = sharedService.getUser(username, "An unexpected error occurred. " +
+                "Could not fetch user information from authenticated user");
+
+        if (!shoppingListRepository.existsByIdAndOwner(handleCollaboratorInput.shoppingListId(), owner)) {
             log.error("Only the owner of a shopping list may add a collaborator");
             throw new AccessDeniedException("Only the owner of a shopping list may add a collaborator");
         }
 
-        ShoppingList shoppingList = shoppingListRepository.findById(inviteCollaboratorInput.shoppingListId())
-                .orElseThrow(() -> new RuntimeException("An unexpected error occurred."));
+        ShoppingList shoppingList = sharedService.shoppingListById(handleCollaboratorInput.shoppingListId(),
+                "An unexpected error occurred.");
 
         if (shoppingList.getCollaborator() != null) {
             throw new IllegalArgumentException("There is already a collaborator on this list. Please remove them first.");
         }
 
-        AppUserEntity collaborator = appUserRepository.
-                findByUsernameOrEmail(inviteCollaboratorInput.collaboratorCredential(),
-                        inviteCollaboratorInput.collaboratorCredential())
-                .orElseThrow(() -> new IllegalArgumentException("No such user"));
+        AppUserEntity collaborator =
+                sharedService.getUserFromUsernameOrEmail(
+                        handleCollaboratorInput.collaboratorCredential(),
+                        "No such user");
+
         if (owner.equals(collaborator)) {
             throw new IllegalArgumentException("You can't add yourself as a collaborator");
         }
 
-        return shoppingListRepository.save(shoppingList.setCollaborator(collaborator));
+        ShoppingList savedList = shoppingListRepository.save(shoppingList.setCollaborator(collaborator));
+
+        return savedList.toModifiedShoppingList(collaborator.getUsername() + " has been added as a collaborator");
     }
+
+
+    @PreAuthorize("isAuthenticated()")
+    public ModifiedShoppingList removeCollaborator(HandleCollaboratorInput handleCollaboratorInput, String username) {
+        AppUserEntity owner = sharedService.getUser(username, "An unexpected error occurred. " +
+                "Could not fetch user information from authenticated user");
+
+        if (!shoppingListRepository.existsByIdAndOwner(handleCollaboratorInput.shoppingListId(), owner)) {
+            log.error("Only the owner of a shopping list may remove a collaborator");
+            throw new AccessDeniedException("Only the owner of a shopping list may remove a collaborator");
+        }
+
+        ShoppingList shoppingList = sharedService.shoppingListById(handleCollaboratorInput.shoppingListId(),
+                "An unexpected error occurred.");
+
+        if (shoppingList.getCollaborator() == null) {
+            throw new IllegalArgumentException("There is no collaborator to remove on this list.");
+        }
+        ShoppingList savedList = shoppingListRepository.save(shoppingList.setCollaborator(null));
+
+        return savedList.toModifiedShoppingList(handleCollaboratorInput.collaboratorCredential()
+                + " has been removed as a collaborator");
+    }
+
 }

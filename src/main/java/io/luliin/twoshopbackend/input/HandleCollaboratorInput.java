@@ -7,9 +7,9 @@ import javax.validation.constraints.NotNull;
  * @author Julia Wigenstedt
  * Date: 2022-01-15
  */
-public record InviteCollaboratorInput(
-        @NotNull(message = "You can't invite a collaborator to an unspecified list!")
+public record HandleCollaboratorInput(
+        @NotNull(message = "Unspecified list!")
         Long shoppingListId,
-        @Email(message = "You must provide a valid email for the collaborator")
+        @Email(message = "You must provide a valid email for the collaborator!")
         String collaboratorCredential) {
 }
