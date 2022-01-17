@@ -37,7 +37,7 @@ public class SharedService {
     }
 
     @PreAuthorize("isAuthenticated()")
-    @PostAuthorize("returnObject.owner.username == authentication.principal " +
+    @PostAuthorize("hasAnyRole({'ROLE_ADMIN', 'ROLE_SUPER_ADMIN'}) or returnObject.owner.username == authentication.principal " +
             "or returnObject.collaborator != null and returnObject.collaborator.username == authentication.principal")
     public ShoppingList shoppingListById(Long shoppingListId, String errorMessage) {
         return shoppingListRepository.findById(shoppingListId)
