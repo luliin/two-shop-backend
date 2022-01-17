@@ -15,14 +15,19 @@ import io.luliin.twoshopbackend.repository.ItemRepository;
 import io.luliin.twoshopbackend.repository.ShoppingListRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.validator.constraints.Length;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
 import javax.annotation.PostConstruct;
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -36,16 +41,15 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 public class ShoppingListService {
 
     public final ShoppingListRepository shoppingListRepository;
     private final AppUserRepository appUserRepository;
     private final ItemRepository itemRepository;
-
     private final SharedService sharedService;
 
     private Sinks.Many<ShoppingList> shoppingListProcessor;
-
     private final RabbitSender rabbitSender;
 
 
@@ -73,11 +77,8 @@ public class ShoppingListService {
     public ShoppingList createShoppingList(CreateShoppingListInput createShoppingListInput, String username) {
 
         AppUserEntity owner = sharedService.getUser(username,
-                "Trying to create shopping list without valid owner");
+                "Unable to fetch user information when creating shopping list");
 
-        if (shoppingListRepository.existsByOwnerAndName(owner, createShoppingListInput.name())) {
-            throw new IllegalArgumentException("You can't own multiple shopping lists with the same name");
-        }
         Timestamp now = Timestamp.valueOf(LocalDateTime.now());
 
         ShoppingList newShoppingList = ShoppingList.builder()
@@ -88,29 +89,27 @@ public class ShoppingListService {
                 .items(new ArrayList<>())
                 .build();
 
-        //TODO : Clean up
-        if (appUserRepository.existsByUsernameOrEmail(createShoppingListInput.collaboratorCredential(), createShoppingListInput.collaboratorCredential())) {
+        if (appUserRepository.existsByUsernameOrEmail(
+                createShoppingListInput.collaboratorCredential(),
+                createShoppingListInput.collaboratorCredential())
+        ) {
             log.info("Collaborator present");
             newShoppingList.setCollaborator(appUserRepository.findByUsernameOrEmail(
                     createShoppingListInput.collaboratorCredential(),
-                    createShoppingListInput.collaboratorCredential()).get());
+                    createShoppingListInput.collaboratorCredential())
+                    .orElseThrow(() -> new RuntimeException("An unexpected error occurred while adding collaborator")));
         }
         return shoppingListRepository.save(newShoppingList);
 
     }
 
-    public ShoppingList modifyShoppingListItems(Long itemId, Boolean removeItem, ShoppingListItemInput shoppingListItemInput) {
-        log.info("Trying to modify request with item id {}, remove item = {}", itemId, removeItem);
-        log.info("ShoppingListInput = {}", shoppingListItemInput.toString());
-        AppUserEntity ownerOrCollaborator = appUserRepository.findByUsernameOrEmail(shoppingListItemInput.userCredentials(), shoppingListItemInput.userCredentials())
-                .orElseThrow(() -> new IllegalArgumentException("Trying to create shopping list without valid owner"));
-
-        ShoppingList shoppingList = shoppingListRepository.findByIdAndOwnerOrIdAndCollaborator(
+    @PreAuthorize("isAuthenticated()")
+    public ShoppingList modifyShoppingListItems(Long itemId,
+                                                Boolean removeItem,
+                                                @Valid ShoppingListItemInput shoppingListItemInput) {
+        ShoppingList shoppingList = sharedService.shoppingListById(
                 shoppingListItemInput.shoppingListId(),
-                ownerOrCollaborator,
-                shoppingListItemInput.shoppingListId(),
-                ownerOrCollaborator)
-                .orElseThrow(() -> new IllegalArgumentException("You are not authorized to modify this shopping list"));
+                "You are not authorized to modify this shopping list");
 
         log.info("Modifying shopping list {} ", shoppingList.getName());
 
@@ -124,14 +123,17 @@ public class ShoppingListService {
         }
     }
 
-    private ShoppingList updateItem(ShoppingList shoppingList, Long itemId, ItemInput input) {
+    @PreAuthorize("isAuthenticated()")
+    @PostAuthorize("returnObject.owner.username == authentication.principal " +
+            "or returnObject.collaborator != null and returnObject.collaborator.username == authentication.principal")
+    private ShoppingList updateItem(ShoppingList shoppingList, Long itemId, @Valid ItemInput input) {
         if (input == null) throw new IllegalArgumentException("Cannot update item without item input");
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("No such item"));
         if (shoppingList != item.getShoppingList())
             throw new IllegalArgumentException("The item does not belong to this shopping list");
         log.info("Updating item with id {}", item.getId());
-        item.setName((input.name() != null) ? input.name() : item.getName());
+        item.setName((input.name() != null) ? input.name().trim() : item.getName());
         item.setQuantity((input.quantity() != null) ? input.quantity() : item.getQuantity());
         item.setUnit((input.unit() != null) ? input.unit() : item.getUnit());
         item.setIsCompleted((input.isCompleted() != null) ? input.isCompleted() : item.getIsCompleted());
@@ -141,12 +143,13 @@ public class ShoppingListService {
         updatedShoppingList.setUpdatedAt(now);
 
         final ShoppingList savedList = shoppingListRepository.save(updatedShoppingList);
-//        publish(savedList);
         rabbitSender.publishShoppingListSubscription(savedList);
 
         return savedList;
     }
 
+    @PostAuthorize("returnObject.owner.username == authentication.principal " +
+            "or returnObject.collaborator != null and returnObject.collaborator.username == authentication.principal")
     private ShoppingList removeItem(ShoppingList shoppingList, Long itemId) {
         if (itemId == null) throw new IllegalArgumentException("Can not delete item. Id was null.");
         Item item = itemRepository.findById(itemId)
@@ -156,14 +159,17 @@ public class ShoppingListService {
         Timestamp now = Timestamp.valueOf(LocalDateTime.now());
         shoppingList.setUpdatedAt(now);
         final ShoppingList updatedList = shoppingListRepository.save(shoppingList);
-//        publish(updatedList);
         rabbitSender.publishShoppingListSubscription(updatedList);
         return updatedList;
     }
 
-    private ShoppingList addItem(ShoppingList shoppingList, ItemInput input) {
+    @PostAuthorize("returnObject.owner.username == authentication.principal " +
+            "or returnObject.collaborator != null and returnObject.collaborator.username == authentication.principal")
+    private ShoppingList addItem(ShoppingList shoppingList,
+                                @Valid ItemInput input) {
+
         Item item = Item.builder()
-                .name(input.name())
+                .name(input.name().trim())
                 .quantity(input.quantity())
                 .unit(input.unit())
                 .isCompleted((input.isCompleted() != null) ? input.isCompleted() : false)
@@ -174,10 +180,10 @@ public class ShoppingListService {
         shoppingList.setUpdatedAt(now);
         log.info("Adding new item with to shopping list with id {}", shoppingList.getId());
         final ShoppingList updatedList = shoppingListRepository.save(shoppingList);
-//        publish(updatedList);
         rabbitSender.publishShoppingListSubscription(updatedList);
         return updatedList;
     }
+
 
     @RabbitListener(queues = "#{queue1.name}")
     public void publish(Long shoppingListId) {
@@ -192,6 +198,7 @@ public class ShoppingListService {
         }
 
     }
+
 
     public Flux<List<Item>> getShoppingListPublisher(Long shoppingListId) {
         log.info("In getShoppingListPublisher {}", shoppingListId);
@@ -238,14 +245,14 @@ public class ShoppingListService {
 
 
     @PreAuthorize("isAuthenticated()")
-    public ModifiedShoppingList removeCollaborator(HandleCollaboratorInput handleCollaboratorInput, String username) {
-        AppUserEntity owner = sharedService.getUser(username, "An unexpected error occurred. " +
-                "Could not fetch user information from authenticated user");
+    public ModifiedShoppingList removeCollaborator(HandleCollaboratorInput handleCollaboratorInput) {
 
-        if (!shoppingListRepository.existsByIdAndOwner(handleCollaboratorInput.shoppingListId(), owner)) {
-            log.error("Only the owner of a shopping list may remove a collaborator");
-            throw new AccessDeniedException("Only the owner of a shopping list may remove a collaborator");
+        if (!shoppingListRepository.existsById(handleCollaboratorInput.shoppingListId())) {
+            throw new IllegalArgumentException("No such shopping list");
         }
+
+        sharedService.shoppingListById(handleCollaboratorInput.shoppingListId(),
+                "You are not authorized to modify this shopping list");
 
         ShoppingList shoppingList = sharedService.shoppingListById(handleCollaboratorInput.shoppingListId(),
                 "An unexpected error occurred.");
@@ -258,5 +265,34 @@ public class ShoppingListService {
         return savedList.toModifiedShoppingList(handleCollaboratorInput.collaboratorCredential()
                 + " has been removed as a collaborator");
     }
+
+    @PreAuthorize("isAuthenticated()")
+    public ModifiedShoppingList changeShoppingListName(Long shoppingListId,
+                                                       @NotBlank(message = "Ogiltigt namn på shoppinglistan")
+                                                       @Length(max = 75,
+                                                               message = "Namnet får inte innehålla mer än {max} tecken")
+                                                               String newName) {
+
+        ShoppingList shoppingList = sharedService.shoppingListById(shoppingListId,
+                "You're not authorized to modify the name of this shopping list");
+
+        ShoppingList savedList = shoppingListRepository.save(shoppingList.setName(newName.trim()));
+
+        return savedList.toModifiedShoppingList("You successfully changed the name to " + newName.trim());
+
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    public ModifiedShoppingList clearAllItems(Long shoppingListId) {
+        ShoppingList shoppingList = sharedService.shoppingListById(shoppingListId,
+                "You are not authorized to modify this shopping list");
+
+        shoppingList.removeAllItems();
+        ShoppingList updatedList = shoppingListRepository.save(shoppingList);
+        return updatedList.toModifiedShoppingList(updatedList.getName()+ " är nu tom!");
+    }
+
+
+
 
 }

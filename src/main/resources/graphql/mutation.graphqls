@@ -1,9 +1,23 @@
+"""
+Available mutations in Two Shop api.
+Observe that all mutations except for addUser need an Authorization header with 'Bearer token' to be able to call them.
+"""
 type Mutation {
+    "Creates a new user with basic user privileges, such as creating shopping lists and collaborating on list by invite."
     addUser(appUserInput: AppUserInput!) : AppUser!
+    "Creates a new shopping list with the set name, with the option to include a collaborator if there is any."
     createShoppingList(createShoppingListInput : CreateShoppingListInput!) : ShoppingList!
+    """This is an all purpose mutation handling most use cases of item mutation on a specific shopping list.
+    If itemId is provided the item with said id will be updated with the new information provided from the nested
+    ItemInput.
+    If itemId is provided and removeItem is set to true the item will be removed from the list.
+    Callable by list owner, collaborator and admin"""
     modifyShoppingListItems(itemId: ID, removeItem: Boolean, shoppingListItemInput: ShoppingListItemInput!) : ShoppingList!
+    ""
     inviteCollaborator(handleCollaboratorInput: HandleCollaboratorInput!) : ModifiedShoppingList!
     removeCollaborator(handleCollaboratorInput: HandleCollaboratorInput!) : ModifiedShoppingList!
+    changeShoppingListName(shoppingListId: ID!, newName: String!) : ModifiedShoppingList!
+    clearAllItems(shoppingListId: ID!) : ModifiedShoppingList!
 }
 
 

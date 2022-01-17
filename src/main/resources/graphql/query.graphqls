@@ -1,5 +1,11 @@
+
+"""Available queries in Two Shop api.
+Observe that all queries need an Authorization header with 'Bearer token' to be able to call them."""
 type Query {
+    "Returns a complete list of users. Only callable by admin."
     users : [AppUser]
+    "Returns a single user, and can be viewed by all authenticated users."
     userById(userId: ID!) : AppUser
+    "Returns a shopping list from its id. Can only be viewed by list owner, collaborator or admin."
     shoppingListById(shoppingListId: ID!) : ShoppingList
 }

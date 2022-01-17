@@ -55,7 +55,7 @@ public class ShoppingListController {
     @MutationMapping
     public ShoppingList modifyShoppingListItems(@Argument Long itemId,
                                                 @Argument Boolean removeItem,
-                                                @Valid @Argument ShoppingListItemInput shoppingListItemInput) {
+                                                @Argument ShoppingListItemInput shoppingListItemInput) {
         return shoppingListService.modifyShoppingListItems(itemId, removeItem, shoppingListItemInput);
     }
 
@@ -68,8 +68,21 @@ public class ShoppingListController {
     @MutationMapping
     public ModifiedShoppingList removeCollaborator(@Valid @Argument HandleCollaboratorInput handleCollaboratorInput,
                                                    Principal principal) {
-        return shoppingListService.removeCollaborator(handleCollaboratorInput, principal.getName());
+        return shoppingListService.removeCollaborator(handleCollaboratorInput);
     }
+
+    @MutationMapping
+    public ModifiedShoppingList changeShoppingListName(@Argument Long shoppingListId,
+                                                       @Argument @Valid String newName,
+                                                       Principal principal) {
+        return shoppingListService.changeShoppingListName(shoppingListId, newName);
+    }
+
+    @MutationMapping
+    public ModifiedShoppingList clearAllItems(@Argument Long shoppingListId) {
+        return shoppingListService.clearAllItems(shoppingListId);
+    }
+
 
     @SubscriptionMapping
     public Publisher<List<Item>> itemModified(@Argument Long shoppingListId) {

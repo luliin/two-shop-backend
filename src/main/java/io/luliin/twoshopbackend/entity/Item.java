@@ -1,6 +1,7 @@
 package io.luliin.twoshopbackend.entity;
 
 import lombok.*;
+import org.hibernate.validator.constraints.Length;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
@@ -31,7 +32,7 @@ public class Item {
     )
     @Id
     private Long id;
-    @NotBlank
+    @NotBlank(message = "Ogiltigt namn på produkten")
     private String name;
     private Double quantity;
     @Enumerated(EnumType.STRING)
