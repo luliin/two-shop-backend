@@ -18,8 +18,6 @@ import io.luliin.twoshopbackend.repository.ShoppingListRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.validator.constraints.Length;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscription;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PostAuthorize;
@@ -237,11 +235,12 @@ public class ShoppingListService {
     //TODO: Implement Rabbit
     public Mono<DeletedListResponse> getDeletedListPublisher(Long shoppingListId) {
         return Mono.just(Mono.from(deletedListSink.asFlux()
-                .filter(deletedList -> {
-                            log.info("Publishing individual subscription for deleted shopping list: {}", shoppingListId);
-                            return deletedList.shoppingListId().equals(shoppingListId);
-                        }
-                ).next()).log().blockOptional()
+                .filter(deletedList -> deletedList.shoppingListId().equals(shoppingListId))
+                .map(response -> {
+                    log.info("Publishing individual subscription for deleted shopping list: {}", shoppingListId);
+                    return response;
+                })
+                .next()).log().blockOptional()
                 .orElse(new DeletedListResponse("Could not get delete message", "/home", shoppingListId)));
     }
 
