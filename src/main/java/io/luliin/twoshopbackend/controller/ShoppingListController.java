@@ -16,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.springframework.graphql.data.method.annotation.*;
-import org.springframework.graphql.web.webmvc.GraphQlWebSocketHandler;
 import org.springframework.stereotype.Controller;
 
 import javax.validation.Valid;
@@ -97,6 +96,13 @@ public class ShoppingListController {
     public Publisher<List<Item>> itemModified(@Argument Long shoppingListId, DataFetchingEnvironment environment) {
         log.info("In subscription mapping for shoppingListId {}", shoppingListId);
         return shoppingListService.getShoppingListPublisher(shoppingListId, environment);
+    }
+
+
+    @SubscriptionMapping
+    public Publisher<DeletedListResponse> listDeleted(@Argument Long shoppingListId) {
+        log.info("In subscription mapping for list deleted with id {}", shoppingListId);
+        return shoppingListService.getDeletedListPublisher(shoppingListId);
     }
 
 }

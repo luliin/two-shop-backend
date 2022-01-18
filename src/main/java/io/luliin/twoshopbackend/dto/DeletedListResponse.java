@@ -6,6 +6,7 @@ package io.luliin.twoshopbackend.dto;
  */
 public record DeletedListResponse(
         String message,
-        String path
+        String path,
+        Long shoppingListId
 ) {
 }

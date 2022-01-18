@@ -91,4 +91,5 @@ This represents the payload returned when a shopping list has been deleted.
 type DeletedListResponse {
     message: String!
     path: String!
+    shoppingListId: ID!
 }
