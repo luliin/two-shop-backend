@@ -84,3 +84,11 @@ type ModifiedShoppingList {
     "Message provided by server depending the operation that has been performed."
     message: String!
 }
+
+"""
+This represents the payload returned when a shopping list has been deleted.
+"""
+type DeletedListResponse {
+    message: String!
+    path: String!
+}

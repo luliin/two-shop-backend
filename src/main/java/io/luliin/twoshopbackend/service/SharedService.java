@@ -43,4 +43,12 @@ public class SharedService {
         return shoppingListRepository.findById(shoppingListId)
                 .orElseThrow(() -> new RuntimeException(errorMessage));
     }
+
+
+    @PreAuthorize("isAuthenticated()")
+    @PostAuthorize("hasAnyRole({'ROLE_ADMIN', 'ROLE_SUPER_ADMIN'}) or returnObject.owner.username == authentication.principal")
+    public ShoppingList ownedShoppingListById(Long shoppingListId, String errorMessage) {
+        return shoppingListRepository.findById(shoppingListId)
+                .orElseThrow(() -> new RuntimeException(errorMessage));
+    }
 }

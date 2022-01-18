@@ -1,7 +1,6 @@
 package io.luliin.twoshopbackend.entity;
 
 import lombok.*;
-import org.hibernate.validator.constraints.Length;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
@@ -19,6 +18,7 @@ import javax.validation.constraints.NotBlank;
 @Setter
 @Getter
 @Builder
+@ToString
 public class Item {
 
     @SequenceGenerator(
@@ -39,6 +39,7 @@ public class Item {
     private Unit unit;
     private Boolean isCompleted;
     @ManyToOne(optional = false)
+    @ToString.Exclude
     private ShoppingList shoppingList;
 
 

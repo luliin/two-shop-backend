@@ -1,6 +1,9 @@
 package io.luliin.twoshopbackend.service;
 
+import graphql.GraphQLContext;
+import graphql.schema.DataFetchingEnvironment;
 import io.luliin.twoshopbackend.dto.AppUser;
+import io.luliin.twoshopbackend.dto.DeletedListResponse;
 import io.luliin.twoshopbackend.dto.ModifiedShoppingList;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.Item;
@@ -17,13 +20,17 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.validator.constraints.Length;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.graphql.web.webmvc.GraphQlWebSocketHandler;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
+
+import reactor.core.Scannable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
+
 
 import javax.annotation.PostConstruct;
 import javax.validation.Valid;
@@ -32,6 +39,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 
 /**
@@ -200,14 +208,16 @@ public class ShoppingListService {
     }
 
 
-    public Flux<List<Item>> getShoppingListPublisher(Long shoppingListId) {
+    public Flux<List<Item>> getShoppingListPublisher(Long shoppingListId, DataFetchingEnvironment environment) {
         log.info("In getShoppingListPublisher {}", shoppingListId);
+        environment.getArguments().forEach((a, b) -> log.info("Arguments: {}={}", a, b));
+
         return shoppingListProcessor.asFlux()
                 .filter(shoppingList -> shoppingListId.equals(shoppingList.getId()))
                 .map(shoppingList -> {
                     log.info("Publishing individual subscription update for Shopping list {}", shoppingList.getName());
                     return shoppingList.getItems();
-                });
+                }).log();
     }
 
 
@@ -289,10 +299,25 @@ public class ShoppingListService {
 
         shoppingList.removeAllItems();
         ShoppingList updatedList = shoppingListRepository.save(shoppingList);
+        rabbitSender.publishShoppingListSubscription(updatedList);
         return updatedList.toModifiedShoppingList(updatedList.getName()+ " är nu tom!");
     }
 
+    @PreAuthorize("isAuthenticated()")
+    public DeletedListResponse deleteShoppingList(Long shoppingListId) {
+        ShoppingList shoppingList = sharedService.ownedShoppingListById(shoppingListId,
+                "You are not allowed to modify this shopping list");
+
+        shoppingListRepository.delete(shoppingList);
+        shoppingList.setItems(null);
+        shoppingListProcessor.tryEmitNext(shoppingList);
+
+        return new DeletedListResponse(shoppingList.getOwner().getUsername() + " tog bort " + shoppingList.getName(),
+                "/home");
+
+    }
 
 
+//TODO: Add functionality to delete a shopping list (making sure all items are deleted as well) Implement second subscription
 
 }

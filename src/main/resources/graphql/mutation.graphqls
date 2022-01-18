@@ -18,6 +18,7 @@ type Mutation {
     removeCollaborator(handleCollaboratorInput: HandleCollaboratorInput!) : ModifiedShoppingList!
     changeShoppingListName(shoppingListId: ID!, newName: String!) : ModifiedShoppingList!
     clearAllItems(shoppingListId: ID!) : ModifiedShoppingList!
+    deleteShoppingList(shoppingListId: ID!) : DeletedListResponse!
 }
 
 

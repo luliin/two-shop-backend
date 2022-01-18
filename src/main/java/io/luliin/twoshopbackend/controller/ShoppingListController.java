@@ -1,6 +1,9 @@
 package io.luliin.twoshopbackend.controller;
 
+import graphql.GraphQLContext;
+import graphql.schema.DataFetchingEnvironment;
 import io.luliin.twoshopbackend.dto.AppUser;
+import io.luliin.twoshopbackend.dto.DeletedListResponse;
 import io.luliin.twoshopbackend.dto.ModifiedShoppingList;
 import io.luliin.twoshopbackend.entity.Item;
 import io.luliin.twoshopbackend.entity.ShoppingList;
@@ -13,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.springframework.graphql.data.method.annotation.*;
+import org.springframework.graphql.web.webmvc.GraphQlWebSocketHandler;
 import org.springframework.stereotype.Controller;
 
 import javax.validation.Valid;
@@ -83,11 +87,16 @@ public class ShoppingListController {
         return shoppingListService.clearAllItems(shoppingListId);
     }
 
+    @MutationMapping
+    public DeletedListResponse deleteShoppingList(@Argument Long shoppingListId) {
+        return shoppingListService.deleteShoppingList(shoppingListId);
+    }
+
 
     @SubscriptionMapping
-    public Publisher<List<Item>> itemModified(@Argument Long shoppingListId) {
+    public Publisher<List<Item>> itemModified(@Argument Long shoppingListId, DataFetchingEnvironment environment) {
         log.info("In subscription mapping for shoppingListId {}", shoppingListId);
-        return shoppingListService.getShoppingListPublisher(shoppingListId);
+        return shoppingListService.getShoppingListPublisher(shoppingListId, environment);
     }
 
 }
