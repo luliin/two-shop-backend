@@ -232,14 +232,13 @@ public class ShoppingListService {
 
 
     public Mono<DeletedListResponse> getDeletedListPublisher(Long shoppingListId) {
-        return Mono.just(Mono.from(deletedListSink.asFlux()
+        return Mono.from(deletedListSink.asFlux()
                 .filter(deletedList -> deletedList.shoppingListId().equals(shoppingListId))
                 .map(response -> {
                     log.info("Publishing individual subscription for deleted shopping list: {}", shoppingListId);
                     return response;
                 })
-                .next()).log().blockOptional()
-                .orElse(new DeletedListResponse("Could not get delete message", "/home", shoppingListId)));
+                .next()).log();
     }
 
 

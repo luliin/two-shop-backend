@@ -1,6 +1,7 @@
 package io.luliin.twoshopbackend.security;
 
 
+import graphql.ExecutionInput;
 import graphql.GraphQLContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.graphql.web.WebInput;
@@ -24,6 +25,8 @@ public class CustomWebSocketInterceptor implements WebSocketInterceptor {
     public Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain chain) {
         log.info("Webinput headers: {}", webInput.getHeaders());
         log.info("Webinput variables: {}", webInput.getVariables());
+        var test = webInput.toExecutionInput(true).toString();
+        log.info("GraphQlContext {}", test);
         final Mono<WebOutput> next = chain.next(webInput);
         return next.map(webOutput -> {
             Object data = webOutput.getData();
