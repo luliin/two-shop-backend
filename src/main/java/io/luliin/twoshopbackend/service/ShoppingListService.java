@@ -231,7 +231,6 @@ public class ShoppingListService {
     }
 
 
-    //TODO: Implement Rabbit
     public Mono<DeletedListResponse> getDeletedListPublisher(Long shoppingListId) {
         return Mono.just(Mono.from(deletedListSink.asFlux()
                 .filter(deletedList -> deletedList.shoppingListId().equals(shoppingListId))
