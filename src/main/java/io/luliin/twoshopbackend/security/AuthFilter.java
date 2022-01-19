@@ -43,7 +43,7 @@ public class AuthFilter extends UsernamePasswordAuthenticationFilter {
         log.info("Authenticating user {}", username);
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
         final Authentication authenticate = authenticationManager.authenticate(token);
-        log.info("Authenticated user {}", authenticate.getCredentials());
+        log.info("Authenticated user {}", authenticate.getName());
         return authenticate;
     }
 
