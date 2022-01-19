@@ -39,7 +39,6 @@ public class AppUserEntity implements UserDetails {
             generator = "app_user_id_sequence"
     )
     @Id
-
     private Long id;
     @Column(nullable = false, unique = true, length = 36)
     private String username;
