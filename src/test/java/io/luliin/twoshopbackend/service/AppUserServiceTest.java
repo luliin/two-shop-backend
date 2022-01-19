@@ -9,13 +9,9 @@ import io.luliin.twoshopbackend.repository.UserRoleRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -52,7 +48,7 @@ class AppUserServiceTest {
     @InjectMocks
     AppUserService appUserService;
     @Mock
-    PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+    PasswordEncoder passwordEncoder;
 
     AppUserEntity user;
     UserRole userRole;
@@ -61,12 +57,12 @@ class AppUserServiceTest {
 
     @BeforeEach
     void setUp() {
-
+        passwordEncoder = new BCryptPasswordEncoder(10);
         userRole = new UserRole(1L, UserRole.Role.USER);
         user = AppUserEntity.builder()
                 .id(1L)
                 .username("testaren")
-                .password("password")
+                .password(passwordEncoder.encode("password"))
                 .email("test@test.test")
                 .firstName("Test")
                 .lastName("Testsson")
@@ -177,6 +173,17 @@ class AppUserServiceTest {
 
         assertEquals("No such user", illegalArgumentException.getMessage());
         verify(mockUserRepo, times(1)).findById(anyLong());
+
+    }
+
+    @Test
+    void passwordEncoderCanMatchPassword() {
+
+        String expected = "password";
+        String encoded = passwordEncoder.encode(expected);
+
+        boolean passwordMatches = passwordEncoder.matches(expected, encoded);
+        assertTrue(passwordMatches);
 
     }
 }
