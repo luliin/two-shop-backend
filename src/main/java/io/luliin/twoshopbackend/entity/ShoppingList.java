@@ -68,4 +68,8 @@ public class ShoppingList {
     public ModifiedShoppingList toModifiedShoppingList(String message) {
         return new ModifiedShoppingList(this, message);
     }
+
+    public void removeAllItems() {
+        items.clear();
+    }
 }

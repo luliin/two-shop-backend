@@ -12,7 +12,6 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -52,13 +51,12 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
             return;
         }
         UsernamePasswordAuthenticationToken authenticationToken = getAuthentication(jwt_token);
-
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
         chain.doFilter(request, response);
     }
 
     /**
-     * Loggs when authentications is unsuccessful
+     * Logs when authentications is unsuccessful
      * @param request from request by user
      * @param response to send to user
      * @param failed authentication exception
@@ -66,8 +64,6 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
     @Override
     protected void onUnsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) {
         log.error("onUnsuccessfulAuthentication {}", failed.getMessage());
-        log.info("{}", Arrays.asList(request.getCookies()));
-//        response.addCookie(new Cookie("jwt_token",""));
         throw failed;
     }
 
@@ -76,11 +72,9 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
      * @param jwt_token token from the request with users name and password
      * @return a UsernamePasswordAuthenticationToken object
      */
-    private UsernamePasswordAuthenticationToken getAuthentication(String jwt_token){
-        log.info("In getAuthentication() ---  JWT Token: {}", jwt_token);
-
+    public UsernamePasswordAuthenticationToken getAuthentication(String jwt_token){
         Claims claims = jwtIssuer.validate(jwt_token.substring("Bearer ".length()));
-
+        log.info("In getAuthentication() ---  Subject: {}", claims.getSubject());
         log.info("In getAuthentication() ---  Authorities: {}", claims.get("authorities"));
 
         return new UsernamePasswordAuthenticationToken(claims.getSubject(), claims.getSubject(), getAuthorities(claims));

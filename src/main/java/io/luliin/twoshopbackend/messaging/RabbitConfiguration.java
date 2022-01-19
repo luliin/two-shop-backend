@@ -28,12 +28,27 @@ public class RabbitConfiguration {
     }
 
     @Bean
+    public Queue queue2() {
+        return new AnonymousQueue();
+    }
+
+    @Bean
     public Binding forwardBinding(TopicExchange topic,
                                    Queue queue1) {
         return BindingBuilder.bind(queue1)
                 .to(topic)
                 .with("forwarded.*");
     }
+
+    @Bean
+    public Binding deletedBinding(TopicExchange topic,
+                                  Queue queue2) {
+        return BindingBuilder.bind(queue2)
+                .to(topic)
+                .with("deleted.*");
+    }
+
+
 
     @Bean
     public RabbitTemplate rabbitTemplate(final ConnectionFactory connectionFactory, final Jackson2JsonMessageConverter converter) {

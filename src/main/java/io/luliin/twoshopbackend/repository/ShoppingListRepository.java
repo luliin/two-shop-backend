@@ -3,6 +3,7 @@ package io.luliin.twoshopbackend.repository;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.ShoppingList;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,6 +16,5 @@ public interface ShoppingListRepository extends JpaRepository<ShoppingList, Long
     List<ShoppingList> findAllByOwner(AppUserEntity owner);
     List<ShoppingList> findAllByCollaborator(AppUserEntity collaborator);
     Optional<ShoppingList> findByIdAndOwnerOrIdAndCollaborator(Long id, AppUserEntity owner, Long id2, AppUserEntity collaborator);
-    boolean existsByOwnerAndName(AppUserEntity owner, String name);
     boolean existsByIdAndOwner(Long id, AppUserEntity owner);
 }

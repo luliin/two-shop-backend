@@ -18,6 +18,7 @@ import javax.validation.constraints.NotBlank;
 @Setter
 @Getter
 @Builder
+@ToString
 public class Item {
 
     @SequenceGenerator(
@@ -31,13 +32,14 @@ public class Item {
     )
     @Id
     private Long id;
-    @NotBlank
+    @NotBlank(message = "Ogiltigt namn på produkten")
     private String name;
     private Double quantity;
     @Enumerated(EnumType.STRING)
     private Unit unit;
     private Boolean isCompleted;
     @ManyToOne(optional = false)
+    @ToString.Exclude
     private ShoppingList shoppingList;
 
 

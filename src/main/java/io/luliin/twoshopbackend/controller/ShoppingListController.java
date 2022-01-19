@@ -1,6 +1,9 @@
 package io.luliin.twoshopbackend.controller;
 
+import graphql.GraphQLContext;
+import graphql.schema.DataFetchingEnvironment;
 import io.luliin.twoshopbackend.dto.AppUser;
+import io.luliin.twoshopbackend.dto.DeletedListResponse;
 import io.luliin.twoshopbackend.dto.ModifiedShoppingList;
 import io.luliin.twoshopbackend.entity.Item;
 import io.luliin.twoshopbackend.entity.ShoppingList;
@@ -47,14 +50,15 @@ public class ShoppingListController {
     }
 
     @MutationMapping
-    public ShoppingList createShoppingList(@Valid @Argument CreateShoppingListInput createShoppingListInput) {
-        return shoppingListService.createShoppingList(createShoppingListInput);
+    public ShoppingList createShoppingList(@Valid @Argument CreateShoppingListInput createShoppingListInput,
+                                           Principal principal) {
+        return shoppingListService.createShoppingList(createShoppingListInput, principal.getName());
     }
 
     @MutationMapping
     public ShoppingList modifyShoppingListItems(@Argument Long itemId,
                                                 @Argument Boolean removeItem,
-                                                @Valid @Argument ShoppingListItemInput shoppingListItemInput) {
+                                                @Argument ShoppingListItemInput shoppingListItemInput) {
         return shoppingListService.modifyShoppingListItems(itemId, removeItem, shoppingListItemInput);
     }
 
@@ -67,13 +71,38 @@ public class ShoppingListController {
     @MutationMapping
     public ModifiedShoppingList removeCollaborator(@Valid @Argument HandleCollaboratorInput handleCollaboratorInput,
                                                    Principal principal) {
-        return shoppingListService.removeCollaborator(handleCollaboratorInput, principal.getName());
+        return shoppingListService.removeCollaborator(handleCollaboratorInput);
     }
 
+    @MutationMapping
+    public ModifiedShoppingList changeShoppingListName(@Argument Long shoppingListId,
+                                                       @Argument @Valid String newName,
+                                                       Principal principal) {
+        return shoppingListService.changeShoppingListName(shoppingListId, newName);
+    }
+
+    @MutationMapping
+    public ModifiedShoppingList clearAllItems(@Argument Long shoppingListId) {
+        return shoppingListService.clearAllItems(shoppingListId);
+    }
+
+    @MutationMapping
+    public DeletedListResponse deleteShoppingList(@Argument Long shoppingListId) {
+        return shoppingListService.deleteShoppingList(shoppingListId);
+    }
+
+
     @SubscriptionMapping
-    public Publisher<List<Item>> itemModified(@Argument Long shoppingListId) {
+    public Publisher<List<Item>> itemModified(@Argument Long shoppingListId, DataFetchingEnvironment environment) {
         log.info("In subscription mapping for shoppingListId {}", shoppingListId);
-        return shoppingListService.getShoppingListPublisher(shoppingListId);
+        return shoppingListService.getShoppingListPublisher(shoppingListId, environment);
+    }
+
+
+    @SubscriptionMapping
+    public Publisher<DeletedListResponse> listDeleted(@Argument Long shoppingListId) {
+        log.info("In subscription mapping for list deleted with id {}", shoppingListId);
+        return shoppingListService.getDeletedListPublisher(shoppingListId);
     }
 
 }
