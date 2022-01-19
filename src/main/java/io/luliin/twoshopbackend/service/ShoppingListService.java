@@ -207,7 +207,7 @@ public class ShoppingListService {
 
     }
 
-    //TODO: Implement rabbit listener
+    @RabbitListener(queues = "#{queue2.name}")
     public void publishDeletedList(DeletedListResponse response) {
         if (response != null) {
             log.info(" >>> ShoppingListService : Publishing message {}", response.message());
@@ -215,7 +215,6 @@ public class ShoppingListService {
         } else {
             log.error(" >>> An error occurred when publishing deleted list response");
         }
-
     }
 
 
@@ -333,15 +332,14 @@ public class ShoppingListService {
                 "You are not allowed to modify this shopping list");
 
         shoppingListRepository.delete(shoppingList);
-        DeletedListResponse deletedListResponse = new DeletedListResponse(shoppingList.getOwner().getUsername() + " tog bort " + shoppingList.getName(),
+        DeletedListResponse deletedListResponse =
+                new DeletedListResponse(shoppingList.getOwner().getUsername() + " tog bort " + shoppingList.getName(),
                 "/home", shoppingListId);
-        publishDeletedList(deletedListResponse);
-//        deletedListSink.tryEmitNext(deletedListResponse);
+        rabbitSender.publishDeletedResponse(deletedListResponse);
         return deletedListResponse;
 
     }
 
 
-//TODO: Add functionality to delete a shopping list (making sure all items are deleted as well) Implement second subscription
 
 }
