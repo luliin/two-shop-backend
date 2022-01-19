@@ -37,7 +37,6 @@ import static org.mockito.Mockito.*;
 
 
 @ExtendWith({MockitoExtension.class})
-@ContextConfiguration
 class AppUserServiceTest {
 
     @Mock
