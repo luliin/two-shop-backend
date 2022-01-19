@@ -39,3 +39,8 @@ enum Unit {
     HG
     KG
 }
+
+type ModifiedShoppingList {
+    shoppingList: ShoppingList!
+    message: String!
+}

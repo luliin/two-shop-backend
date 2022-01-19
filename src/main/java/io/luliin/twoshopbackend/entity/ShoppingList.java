@@ -1,5 +1,6 @@
 package io.luliin.twoshopbackend.entity;
 
+import io.luliin.twoshopbackend.dto.ModifiedShoppingList;
 import lombok.*;
 import lombok.experimental.Accessors;
 import org.hibernate.annotations.Fetch;
@@ -62,5 +63,9 @@ public class ShoppingList {
         }
         items.remove(item);
         item.setShoppingList(null);
+    }
+
+    public ModifiedShoppingList toModifiedShoppingList(String message) {
+        return new ModifiedShoppingList(this, message);
     }
 }

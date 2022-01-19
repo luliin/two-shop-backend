@@ -2,7 +2,10 @@ type Mutation {
     addUser(appUserInput: AppUserInput!) : AppUser!
     createShoppingList(createShoppingListInput : CreateShoppingListInput!) : ShoppingList!
     modifyShoppingListItems(itemId: ID, removeItem: Boolean, shoppingListItemInput: ShoppingListItemInput!) : ShoppingList!
-    inviteCollaborator(inviteCollaboratorInput: InviteCollaboratorInput!) : ShoppingList!
+    inviteCollaborator(handleCollaboratorInput: HandleCollaboratorInput!) : ModifiedShoppingList!
+    removeCollaborator(handleCollaboratorInput: HandleCollaboratorInput!) : ModifiedShoppingList!
 }
+
+
 
 
