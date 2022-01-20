@@ -85,6 +85,9 @@ class AppUserControllerTest {
                   id
                   username
                   email
+                  lastName
+                  createdAt
+                  updatedAt
                 }
               }""";
 
