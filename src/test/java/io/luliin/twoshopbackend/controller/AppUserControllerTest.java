@@ -282,7 +282,8 @@ class AppUserControllerTest {
                 """.formatted(takenUsername);
 
 
-        var addUser = """
+        var addUser =
+                """
                 mutation {
                     addUser(appUserInput: %s) {
                         firstName
