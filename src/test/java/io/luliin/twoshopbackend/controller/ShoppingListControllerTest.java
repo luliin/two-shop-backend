@@ -10,9 +10,6 @@ import io.luliin.twoshopbackend.security.JWTIssuer;
 import org.junit.jupiter.api.*;
 
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -66,6 +63,9 @@ class ShoppingListControllerTest {
 
     @Autowired
     JWTIssuer jwtIssuer;
+
+    @Autowired
+    ShoppingListRepository shoppingListRepository;
 
 
     static AppUserEntity testUser1;
@@ -250,7 +250,7 @@ class ShoppingListControllerTest {
         var shoppingListInput =
                 """
                             {
-                              name: "Testlistan 2",
+                              name: "Testlistan3",
                               collaboratorCredential: "testaren2"
                             }
                                         
@@ -258,8 +258,12 @@ class ShoppingListControllerTest {
         var mutation = """
                     mutation {
                       createShoppingList(createShoppingListInput: %s) {
+                      id
                         owner {
                           username
+                        }
+                        collaborator {
+                            username
                         }
                       }
                     }
@@ -270,7 +274,10 @@ class ShoppingListControllerTest {
                 .execute()
                 .path("createShoppingList.owner.username")
                 .entity(String.class)
-                .isEqualTo(expected);
+                .isEqualTo(expected)
+                .path("createShoppingList.collaborator.username")
+                .entity(String.class)
+                .isEqualTo(testUser2.getUsername());
 
     }
 
@@ -314,7 +321,7 @@ class ShoppingListControllerTest {
     void modifyShoppingListItemsCanNotBeAccessedByWrongPerson() {
         var userToken = jwtIssuer.generateToken(testUser2);
 
-        var expectedName = "Test cases";
+        var expectedName = "Testlistan3";
 
         var mutation = """
                 mutation {
@@ -556,7 +563,86 @@ class ShoppingListControllerTest {
     }
 
     @Test
+    @Order(8)
+    void deleteShoppingListForbiddenIfNotOwnerOrAdmin() {
+        var userToken = jwtIssuer.generateToken(testUser2);
+
+        if(!shoppingListRepository.existsById(3L)) {
+            ShoppingList newList = ShoppingList.builder()
+                    .id(3L)
+                    .name("Testlistan3")
+                    .owner(testUser1)
+                    .collaborator(testUser2) //Make sure the authenticated user is collaborator
+                    .createdAt(Timestamp.valueOf(LocalDateTime.now()))
+                    .updatedAt(Timestamp.valueOf(LocalDateTime.now()))
+                    .build();
+            shoppingListRepository.save(newList);
+        }
+
+        var expectedErrorMessage = "Forbidden";
+
+        var deleteShoppingListMutation =
+                """
+                                mutation {
+                                  deleteShoppingList(shoppingListId: 3) {
+                                    message
+                                    path
+                                    shoppingListId
+                                  }
+                                }
+                        """;
+
+        this.graphQlTester.query(deleteShoppingListMutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .errors()
+                .satisfy(errors -> {
+                    assertThat(errors.get(0).getMessage()).isEqualTo(expectedErrorMessage);
+                    assertThat(errors.get(0).getPath()).contains("deleteShoppingList");
+                });
+    }
+
+    @Test
+    @Order(9)
     void deleteShoppingList() {
+        var userToken = jwtIssuer.generateToken(testUser1);
+
+        if(!shoppingListRepository.existsById(3L)) {
+            ShoppingList newList = ShoppingList.builder()
+                    .id(3L)
+                    .name("Testlistan3")
+                    .owner(testUser1) //Make sure the authenticated user is collaborator
+                    .collaborator(testUser2)
+                    .createdAt(Timestamp.valueOf(LocalDateTime.now()))
+                    .updatedAt(Timestamp.valueOf(LocalDateTime.now()))
+                    .build();
+            shoppingListRepository.save(newList);
+        }
+
+            var deleteShoppingListMutation =
+                    """
+                                    mutation {
+                                      deleteShoppingList(shoppingListId: 3) {
+                                        message
+                                        path
+                                        shoppingListId
+                                      }
+                                    }
+                            """;
+
+        var expectedMessage = testUser1.getUsername() +" tog bort Testlistan3";
+
+            this.graphQlTester.query(deleteShoppingListMutation)
+                    .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                    .execute()
+                    .path("deleteShoppingList.message")
+                    .entity(String.class)
+                    .satisfies(message -> {
+                        assertThat(message).isNotEmpty();
+                        assertThat(message).isEqualTo(expectedMessage);
+                    });
+
+
     }
 
     @Test
