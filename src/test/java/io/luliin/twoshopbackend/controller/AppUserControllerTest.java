@@ -102,17 +102,6 @@ class AppUserControllerTest {
 
     static AppUserEntity testUser;
 
-    @BeforeEach
-    void setUp () {
-        rabbitAdmin = new RabbitAdmin(connectionFactory);
-        rabbitAdmin.declareExchange(new TopicExchange("topic"));
-        rabbitAdmin.declareQueue(new Queue("forwarded-for-test"));
-        rabbitAdmin.declareQueue(new Queue("deleted-for-test"));
-        rabbitAdmin.declareBinding(new Binding("forwarded-for-test", Binding.DestinationType.QUEUE, "topic", "forwarded.*", null));
-        rabbitAdmin.declareBinding(new Binding("deleted-for-test", Binding.DestinationType.QUEUE, "topic", "deleted.*", null));
-
-    }
-
     @BeforeAll
     public static void init(@Autowired UserRoleRepository userRoleRepository,
                             @Autowired AppUserRepository appUserRepository) {
@@ -164,14 +153,6 @@ class AppUserControllerTest {
 
         appUserRepository.save(second);
 
-    }
-
-    @AfterEach
-    void tearDown() {
-
-        rabbitAdmin.deleteQueue("deleted-for-test");
-        rabbitAdmin.deleteQueue("forwarded-for-test");
-        rabbitAdmin.deleteExchange("topic");
     }
 
     @Test

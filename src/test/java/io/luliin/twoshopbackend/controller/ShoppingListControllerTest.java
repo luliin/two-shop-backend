@@ -93,15 +93,6 @@ class ShoppingListControllerTest {
             }
             """;
 
-    @BeforeEach
-    void setUp() {
-        rabbitAdmin = new RabbitAdmin(connectionFactory);
-        rabbitAdmin.declareExchange(new TopicExchange("topic"));
-        rabbitAdmin.declareQueue(new Queue("only-for-test"));
-        rabbitAdmin.declareBinding(new Binding("only-for-test", Binding.DestinationType.QUEUE, "topic", "forwarded.*", null));
-        rabbitAdmin.declareBinding(new Binding("only-for-test", Binding.DestinationType.QUEUE, "topic", "deleted.*", null));
-
-    }
 
     @BeforeAll
     static void init(@Autowired UserRoleRepository userRoleRepository,
@@ -177,12 +168,6 @@ class ShoppingListControllerTest {
         testShoppingList2 = shoppingListRepository.save(shoppingList2);
 
 
-    }
-
-    @AfterEach
-    void tearDown() {
-        rabbitAdmin.deleteQueue("only-for-test");
-        rabbitAdmin.deleteExchange("topic");
     }
 
     @Test
