@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -47,7 +48,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Julia Wigenstedt
  * Date: 2022-01-20
  */
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebGraphQlTester
 @ExtendWith({MockitoExtension.class, SpringExtension.class})
 @ContextConfiguration(initializers = AppUserControllerTest.TwoShopApplicationTestsContextInitializer.class)
@@ -104,6 +105,7 @@ class AppUserControllerTest {
     @BeforeEach
     void setUp () {
         rabbitAdmin = new RabbitAdmin(connectionFactory);
+        rabbitAdmin.declareExchange(new TopicExchange("topic"));
         rabbitAdmin.declareQueue(new Queue("forwarded-for-test"));
         rabbitAdmin.declareQueue(new Queue("deleted-for-test"));
         rabbitAdmin.declareBinding(new Binding("forwarded-for-test", Binding.DestinationType.QUEUE, "topic", "forwarded.*", null));
@@ -166,8 +168,10 @@ class AppUserControllerTest {
 
     @AfterEach
     void tearDown() {
+
         rabbitAdmin.deleteQueue("deleted-for-test");
         rabbitAdmin.deleteQueue("forwarded-for-test");
+        rabbitAdmin.deleteExchange("topic");
     }
 
     @Test

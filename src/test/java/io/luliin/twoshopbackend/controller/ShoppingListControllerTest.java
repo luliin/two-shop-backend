@@ -12,6 +12,7 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -33,6 +34,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -46,6 +48,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureWebGraphQlTester
 @Testcontainers
 @ActiveProfiles(value = "test")
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ShoppingListControllerTest {
 
     @Container
@@ -53,7 +56,8 @@ class ShoppingListControllerTest {
 
     @Autowired
     RabbitTemplate rabbitTemplate;
-    @Autowired ConnectionFactory connectionFactory;
+    @Autowired
+    ConnectionFactory connectionFactory;
 
     static RabbitAdmin rabbitAdmin;
 
@@ -64,11 +68,11 @@ class ShoppingListControllerTest {
     JWTIssuer jwtIssuer;
 
 
-
     static AppUserEntity testUser1;
     static AppUserEntity testUser2;
 
-    static ShoppingList testShoppingList;
+    static ShoppingList testShoppingList1;
+    static ShoppingList testShoppingList2;
 
     String userByIdQuery = """
                         
@@ -81,13 +85,18 @@ class ShoppingListControllerTest {
                     id
                     name
                  }
+                 collaboratorShoppingLists {
+                    id
+                    name
+                 }
               }
             }
             """;
 
     @BeforeEach
-    void setUp () {
+    void setUp() {
         rabbitAdmin = new RabbitAdmin(connectionFactory);
+        rabbitAdmin.declareExchange(new TopicExchange("topic"));
         rabbitAdmin.declareQueue(new Queue("only-for-test"));
         rabbitAdmin.declareBinding(new Binding("only-for-test", Binding.DestinationType.QUEUE, "topic", "forwarded.*", null));
         rabbitAdmin.declareBinding(new Binding("only-for-test", Binding.DestinationType.QUEUE, "topic", "deleted.*", null));
@@ -144,7 +153,7 @@ class ShoppingListControllerTest {
         second.addUserRole(UserRole.Role.USER, userRoleRepository);
 
 
-        testUser2 =appUserRepository.save(second);
+        testUser2 = appUserRepository.save(second);
 
 
         ShoppingList shoppingList = ShoppingList.builder()
@@ -164,21 +173,21 @@ class ShoppingListControllerTest {
                 .updatedAt(Timestamp.valueOf(LocalDateTime.now()))
                 .build();
 
-        testShoppingList = shoppingListRepository.save(shoppingList);
-        shoppingListRepository.save(shoppingList2);
+        testShoppingList1 = shoppingListRepository.save(shoppingList);
+        testShoppingList2 = shoppingListRepository.save(shoppingList2);
 
 
     }
 
     @AfterEach
-   void tearDown() {
+    void tearDown() {
         rabbitAdmin.deleteQueue("only-for-test");
+        rabbitAdmin.deleteExchange("topic");
     }
 
     @Test
+    @Order(1)
     void ownedShoppingLists() {
-
-        //
         var userToken = jwtIssuer.generateToken(testUser1);
 
         this.graphQlTester.query(userByIdQuery)
@@ -209,16 +218,26 @@ class ShoppingListControllerTest {
     }
 
 
-
-
     @Test
     void collaboratorShoppingLists() {
+        var userToken = jwtIssuer.generateToken(testUser1);
+        this.graphQlTester.query(userByIdQuery)
+                .httpHeaders(headers -> headers.setBearerAuth(userToken))
+                .execute()
+                .path("userById.collaboratorShoppingLists[*].id")
+                .entityList(Long.class)
+                .satisfies(ids -> {
+                    assertThat(ids).contains(2L);
+                    assertThat(ids).hasSize(1);
+                });
+
+
     }
 
     @Test
-    @WithMockUser(username = "testaren", roles = "ADMIN")
+    @WithMockUser(roles = "ADMIN")
     void shoppingListById() {
-        var query =  """
+        var query = """
                 {
                     shoppingListById(shoppingListId: 1) {
                         name
@@ -236,27 +255,319 @@ class ShoppingListControllerTest {
     }
 
     @Test
+    @Order(2)
     void createShoppingList() {
+        var userToken = jwtIssuer.generateToken(testUser1);
+
+        var expected = testUser1.getUsername();
+
+
+        var shoppingListInput =
+                """
+                            {
+                              name: "Testlistan 2",
+                              collaboratorCredential: "testaren2"
+                            }
+                                        
+                        """;
+        var mutation = """
+                    mutation {
+                      createShoppingList(createShoppingListInput: %s) {
+                        owner {
+                          username
+                        }
+                      }
+                    }
+                """.formatted(shoppingListInput);
+
+        this.graphQlTester.query(mutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .path("createShoppingList.owner.username")
+                .entity(String.class)
+                .isEqualTo(expected);
+
     }
 
     @Test
+    @Order(5)
     void modifyShoppingListItems() {
+        var userToken = jwtIssuer.generateToken(testUser1);
+
+        var expectedName = "Test cases";
+
+        var mutation = """
+                mutation {
+                  modifyShoppingListItems(
+                    shoppingListItemInput: {shoppingListId: 1, itemInput: {name: "%s", quantity: 2, unit: ST}}
+                  ) {
+                    id
+                    items {
+                      name
+                      quantity
+                      unit
+                      isCompleted
+                    }
+                  }
+                }
+                """.formatted(expectedName);
+        this.graphQlTester.query(mutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .path("modifyShoppingListItems.id")
+                .entity(Long.class)
+                .isNotEqualTo(2L)
+                .isEqualTo(1L)
+                .path("modifyShoppingListItems.items[0].name")
+                .entity(String.class)
+                .isEqualTo(expectedName);
+
+
     }
 
     @Test
+    void modifyShoppingListItemsCanNotBeAccessedByWrongPerson() {
+        var userToken = jwtIssuer.generateToken(testUser2);
+
+        var expectedName = "Test cases";
+
+        var mutation = """
+                mutation {
+                  modifyShoppingListItems(
+                    shoppingListItemInput: {shoppingListId: 1, itemInput: {name: "%s", quantity: 2, unit: ST}}
+                  ) {
+                    id
+                    items {
+                      name
+                      quantity
+                      unit
+                      isCompleted
+                    }
+                  }
+                }
+                """.formatted(expectedName);
+
+        this.graphQlTester.query(mutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .errors()
+                .satisfy(errors -> {
+                    assertThat(errors.get(0).getErrorType()).isEqualTo(ErrorType.FORBIDDEN);
+                    assertThat(errors.get(0).getPath()).isEqualTo(List.of("modifyShoppingListItems"));
+                });
+
+    }
+
+    @Test
+    @Order(3)
     void inviteCollaborator() {
+        var userToken = jwtIssuer.generateToken(testUser1);
+
+        var mutation = """
+                    mutation {
+                      inviteCollaborator(handleCollaboratorInput: {shoppingListId: 1,
+                      collaboratorCredential: "%s"} ) {
+                        shoppingList {
+                          name
+                        }
+                        message
+                      }
+                    }
+                """.formatted(testUser2.getEmail());
+
+        var expected = "testaren2 has been added as a collaborator";
+
+
+        this.graphQlTester.query(mutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .errors()
+                .satisfy(errors -> assertThat(errors).isEmpty())
+                .path("inviteCollaborator.shoppingList.name")
+                .entity(String.class)
+                .isEqualTo("Testlistan")
+                .path("inviteCollaborator.message")
+                .entity(String.class)
+                .satisfies(message -> {
+                    assertThat(message).isNotBlank();
+                    assertThat(message).isEqualTo(expected);
+                });
     }
 
     @Test
+    void inviteCollaboratorThrowsErrorWithBadInput() {
+        var userToken = jwtIssuer.generateToken(testUser1);
+
+        var mutation = """
+                    mutation {
+                      inviteCollaborator(handleCollaboratorInput: {shoppingListId: 1,
+                      collaboratorCredential: "%s"} ) {
+                        shoppingList {
+                          name
+                        }
+                        message
+                      }
+                    }
+                """.formatted(testUser2.getUsername());
+
+        var expected = "inviteCollaborator.handleCollaboratorInput.collaboratorCredential: " +
+                "You must provide a valid email for the collaborator!";
+
+        this.graphQlTester.query(mutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .errors()
+                .satisfy(errors -> {
+                    assertThat(errors).size().isEqualTo(1);
+                    assertThat(errors.get(0).getMessage()).isEqualTo(expected);
+                });
+    }
+
+    @Test
+    void inviteCollaboratorNonOwnerOrAdminError() {
+
+        var userToken = jwtIssuer.generateToken(testUser2);
+
+        var mutation = """
+                    mutation {
+                      inviteCollaborator(handleCollaboratorInput: {shoppingListId: 1,
+                      collaboratorCredential: "%s"} ) {
+                        shoppingList {
+                          name
+                        }
+                        message
+                      }
+                    }
+                """.formatted(testUser2.getEmail());
+
+        this.graphQlTester.query(mutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .errors()
+                .satisfy(errors -> {
+                    assertThat(errors).size().isEqualTo(1);
+                    assertThat(errors.get(0).getMessage()).isEqualTo("Forbidden");
+                });
+
+    }
+
+    @Test
+    @Order(4)
     void removeCollaborator() {
+        var userToken = jwtIssuer.generateToken(testUser2);
+
+        var mutation = """
+                    mutation {
+                      removeCollaborator(handleCollaboratorInput: {
+                        shoppingListId: 1,
+                        collaboratorCredential: "%s"
+                      }) {
+                        shoppingList {
+                          collaborator {
+                            username
+                          }
+                        }
+                        message
+                      }
+                    }
+                """.formatted(testUser2.getEmail());
+
+        this.graphQlTester.query(mutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .path("removeCollaborator.shoppingList.collaborator")
+                .valueIsEmpty()
+                .path("removeCollaborator.message")
+                .entity(String.class)
+                .satisfies(message -> assertThat(message).startsWith(testUser2.getEmail()));
+
     }
 
     @Test
     void changeShoppingListName() {
+
+        var userToken = jwtIssuer.generateToken(testUser2);
+
+        var newName = "Nya Testlistan 2";
+        var oldName = testShoppingList2.getName();
+        var expectedMessage = "You successfully changed the name to Nya Testlistan 2";
+
+        var mutation =
+                """
+                          mutation {
+                          changeShoppingListName(shoppingListId: 2, newName: "%s") {
+                            shoppingList {
+                              name
+                            }
+                            message
+                          }
+                        }
+                        """.formatted(newName);
+
+        this.graphQlTester.query(mutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .path("changeShoppingListName.shoppingList.name")
+                .entity(String.class)
+                .isNotEqualTo(oldName)
+                .isEqualTo(newName)
+                .path("changeShoppingListName.message")
+                .entity(String.class)
+                .satisfies(message -> {
+                    assertThat(message).isNotEmpty();
+                    assertThat(message).isEqualTo(expectedMessage);
+                });
     }
 
     @Test
+    @Order(6)
     void clearAllItems() {
+        var userToken = jwtIssuer.generateToken(testUser1);
+        var query = """ 
+                {
+                    shoppingListById(shoppingListId: 1) {
+                        items {
+                            id
+                        }
+                    }
+                }
+                """;
+
+        this.graphQlTester.query(query)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .path("shoppingListById.items[*].id")
+                .entityList(Long.class)
+                .hasSize(1);
+
+        var clearAllItemsMutation =
+                """
+                            mutation {
+                              clearAllItems(shoppingListId:1) {
+                                shoppingList {
+                                  items {
+                                    id
+                                  }
+                                }
+                                message
+                              }
+                            }
+                        """;
+
+        var expectedMessage = "Testlistan är nu tom!";
+
+        this.graphQlTester.query(clearAllItemsMutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .path("clearAllItems.shoppingList.items[*].id")
+                .entityList(Long.class)
+                .hasSize(0)
+                .path("clearAllItems.message")
+                .entity(String.class)
+                .satisfies(message -> {
+                    assertThat(message).isEqualTo(expectedMessage);
+                });
+
     }
 
     @Test

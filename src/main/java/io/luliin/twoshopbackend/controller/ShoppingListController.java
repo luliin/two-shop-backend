@@ -1,6 +1,5 @@
 package io.luliin.twoshopbackend.controller;
 
-import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import io.luliin.twoshopbackend.dto.AppUser;
 import io.luliin.twoshopbackend.dto.DeletedListResponse;
