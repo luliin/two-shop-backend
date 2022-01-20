@@ -7,21 +7,35 @@ import io.luliin.twoshopbackend.entity.UserRole;
 import io.luliin.twoshopbackend.repository.AppUserRepository;
 import io.luliin.twoshopbackend.repository.UserRoleRepository;
 import io.luliin.twoshopbackend.security.JWTIssuer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureWebGraphQlTester;
 
 import org.springframework.boot.test.context.SpringBootTest;
 
+import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.test.tester.WebGraphQlTester;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.support.TestPropertySourceUtils;
+import org.testcontainers.containers.RabbitMQContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 
 import java.sql.Timestamp;
@@ -36,11 +50,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @AutoConfigureWebGraphQlTester
 @ExtendWith({MockitoExtension.class, SpringExtension.class})
+@ContextConfiguration(initializers = AppUserControllerTest.TwoShopApplicationTestsContextInitializer.class)
+@Testcontainers
 @ActiveProfiles(value = "test")
 class AppUserControllerTest {
 
     @Autowired
     WebGraphQlTester graphQlTester;
+
+    @Container
+    private static final RabbitMQContainer rabbit = new RabbitMQContainer("rabbitmq:3.9.5");
+
+    @Autowired
+    RabbitTemplate rabbitTemplate;
+
+    @Autowired
+    ConnectionFactory connectionFactory;
+
+    static RabbitAdmin rabbitAdmin;
 
     @Autowired
     UserRoleRepository userRoleRepository;
@@ -74,6 +101,15 @@ class AppUserControllerTest {
 
     static AppUserEntity testUser;
 
+    @BeforeEach
+    void setUp () {
+        rabbitAdmin = new RabbitAdmin(connectionFactory);
+        rabbitAdmin.declareQueue(new Queue("forwarded-for-test"));
+        rabbitAdmin.declareQueue(new Queue("deleted-for-test"));
+        rabbitAdmin.declareBinding(new Binding("forwarded-for-test", Binding.DestinationType.QUEUE, "topic", "forwarded.*", null));
+        rabbitAdmin.declareBinding(new Binding("deleted-for-test", Binding.DestinationType.QUEUE, "topic", "deleted.*", null));
+
+    }
 
     @BeforeAll
     public static void init(@Autowired UserRoleRepository userRoleRepository,
@@ -126,6 +162,12 @@ class AppUserControllerTest {
 
         appUserRepository.save(second);
 
+    }
+
+    @AfterEach
+    void tearDown() {
+        rabbitAdmin.deleteQueue("deleted-for-test");
+        rabbitAdmin.deleteQueue("forwarded-for-test");
     }
 
     @Test
@@ -287,6 +329,20 @@ class AppUserControllerTest {
                 .path("userById.firstName")
                 .entity(String.class)
                 .satisfies(firstName -> assertThat(firstName).contains("Test"));
+    }
+
+
+    public static class TwoShopApplicationTestsContextInitializer
+            implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+
+        @Override
+        public void initialize(ConfigurableApplicationContext configurableApplicationContext) {
+
+            TestPropertySourceUtils.addInlinedPropertiesToEnvironment(
+                    configurableApplicationContext,
+                    "spring.rabbitmq.host=" + rabbit.getContainerIpAddress(), "spring.rabbitmq.port=" + rabbit.getMappedPort(5672));
+
+        }
     }
 
 
