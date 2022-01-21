@@ -77,6 +77,7 @@ class ShoppingListControllerTest {
     WebGraphQlHandler webGraphQlHandler;
 
 
+
     static AppUserEntity testUser1;
     static AppUserEntity testUser2;
 
@@ -732,7 +733,6 @@ class ShoppingListControllerTest {
         addItemToShoppingList(shoppingListId, userToken, thirdItemName);
 
         verify.verify();
-
 
     }
 
