@@ -1,5 +1,6 @@
 package io.luliin.twoshopbackend.controller;
 
+import io.luliin.twoshopbackend.AbstractContainerBaseTest;
 import io.luliin.twoshopbackend.dto.DeletedListResponse;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.ShoppingList;
@@ -12,23 +13,19 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureWebGraphQlTester;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.test.tester.WebGraphQlTester;
 import org.springframework.graphql.web.WebGraphQlHandler;
+import org.springframework.lang.NonNull;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.support.TestPropertySourceUtils;
-import org.testcontainers.containers.RabbitMQContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -46,24 +43,17 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(initializers = ShoppingListControllerTest.TwoShopApplicationTestsContextInitializer.class)
 @AutoConfigureWebGraphQlTester
 @Testcontainers
 @ActiveProfiles(value = "test")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @Slf4j
-class ShoppingListControllerTest {
-
-    @Container
-    private static final RabbitMQContainer rabbit = new RabbitMQContainer("rabbitmq:3.9.5");
+class ShoppingListControllerTest extends AbstractContainerBaseTest {
 
     @Autowired
     RabbitTemplate rabbitTemplate;
     @Autowired
     ConnectionFactory connectionFactory;
-
-    static RabbitAdmin rabbitAdmin;
-
     @Autowired
     WebGraphQlTester graphQlTester;
 
@@ -75,7 +65,6 @@ class ShoppingListControllerTest {
 
     @Autowired
     WebGraphQlHandler webGraphQlHandler;
-
 
 
     static AppUserEntity testUser1;
@@ -566,9 +555,7 @@ class ShoppingListControllerTest {
                 .hasSize(0)
                 .path("clearAllItems.message")
                 .entity(String.class)
-                .satisfies(message -> {
-                    assertThat(message).isEqualTo(expectedMessage);
-                });
+                .satisfies(message -> assertThat(message).isEqualTo(expectedMessage));
 
     }
 
@@ -713,15 +700,15 @@ class ShoppingListControllerTest {
                 .consumeNextWith(shoppingList -> {
                     log.info("Items: {}", shoppingList.getItems());
                     assertThat(shoppingList.getItems()).isNotEmpty();
-                    assertThat(shoppingList.getItems().get(shoppingList.getItems().size()-1).getName()).isEqualTo(firstItemName);
+                    assertThat(shoppingList.getItems().get(shoppingList.getItems().size() - 1).getName()).isEqualTo(firstItemName);
                 })
                 .consumeNextWith(shoppingList -> {
                     log.info("Items: {}", shoppingList.getItems());
-                    assertThat(shoppingList.getItems().get(shoppingList.getItems().size()-1).getName()).isEqualTo(secondItemName);
+                    assertThat(shoppingList.getItems().get(shoppingList.getItems().size() - 1).getName()).isEqualTo(secondItemName);
                 })
                 .consumeNextWith(shoppingList -> {
                     log.info("Items: {}", shoppingList.getItems());
-                    assertThat(shoppingList.getItems().get(shoppingList.getItems().size()-1).getName()).isEqualTo(thirdItemName);
+                    assertThat(shoppingList.getItems().get(shoppingList.getItems().size() - 1).getName()).isEqualTo(thirdItemName);
                 })
                 .thenCancel().verifyLater();
 
@@ -757,7 +744,7 @@ class ShoppingListControllerTest {
                 .isEqualTo(shoppingListId)
                 .path("modifyShoppingListItems.items[*].name")
                 .entityList(String.class)
-                .satisfies(itemNames -> assertThat(itemNames.get(itemNames.size()-1)).isEqualTo(expectedItemName));
+                .satisfies(itemNames -> assertThat(itemNames.get(itemNames.size() - 1)).isEqualTo(expectedItemName));
     }
 
 
@@ -837,23 +824,17 @@ class ShoppingListControllerTest {
                 .execute()
                 .path("deleteShoppingList.shoppingListId")
                 .entity(Long.class)
-                .isEqualTo(shoppingListId);
+                .isEqualTo(shoppingListId)
+                .path("deleteShoppingList.message")
+                .entity(String.class)
+                .isEqualTo(expectedMessage);
     }
 
+    @Override
+    public void initialize(@NonNull ConfigurableApplicationContext applicationContext) {
+        TestPropertySourceUtils.addInlinedPropertiesToEnvironment(
+                applicationContext,
+                "spring.rabbitmq.host=" + RABBIT_MQ_CONTAINER.getContainerIpAddress(), "spring.rabbitmq.port=" + RABBIT_MQ_CONTAINER.getMappedPort(5672));
 
-
-
-
-    public static class TwoShopApplicationTestsContextInitializer
-            implements ApplicationContextInitializer<ConfigurableApplicationContext> {
-
-        @Override
-        public void initialize(ConfigurableApplicationContext configurableApplicationContext) {
-
-            TestPropertySourceUtils.addInlinedPropertiesToEnvironment(
-                    configurableApplicationContext,
-                    "spring.rabbitmq.host=" + rabbit.getContainerIpAddress(), "spring.rabbitmq.port=" + rabbit.getMappedPort(5672));
-
-        }
     }
 }

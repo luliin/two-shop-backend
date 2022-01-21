@@ -1,40 +1,30 @@
 package io.luliin.twoshopbackend.controller;
 
 
+import io.luliin.twoshopbackend.AbstractContainerBaseTest;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.UserRole;
-
 import io.luliin.twoshopbackend.repository.AppUserRepository;
 import io.luliin.twoshopbackend.repository.UserRoleRepository;
 import io.luliin.twoshopbackend.security.JWTIssuer;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureWebGraphQlTester;
-
 import org.springframework.boot.test.context.SpringBootTest;
-
-import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.test.tester.WebGraphQlTester;
+import org.springframework.lang.NonNull;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.support.TestPropertySourceUtils;
-import org.testcontainers.containers.RabbitMQContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -48,24 +38,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebGraphQlTester
 @ExtendWith({MockitoExtension.class, SpringExtension.class})
-@ContextConfiguration(initializers = AppUserControllerTest.TwoShopApplicationTestsContextInitializer.class)
 @Testcontainers
 @ActiveProfiles(value = "test")
-class AppUserControllerTest {
+class AppUserControllerTest extends AbstractContainerBaseTest {
 
     @Autowired
     WebGraphQlTester graphQlTester;
-
-    @Container
-    private static final RabbitMQContainer rabbit = new RabbitMQContainer("rabbitmq:3.9.5");
 
     @Autowired
     RabbitTemplate rabbitTemplate;
 
     @Autowired
     ConnectionFactory connectionFactory;
-
-    static RabbitAdmin rabbitAdmin;
 
     @Autowired
     UserRoleRepository userRoleRepository;
@@ -284,12 +268,12 @@ class AppUserControllerTest {
 
         var addUser =
                 """
-                mutation {
-                    addUser(appUserInput: %s) {
-                        firstName
-                    }
-                }
-                """.formatted(input);
+                        mutation {
+                            addUser(appUserInput: %s) {
+                                firstName
+                            }
+                        }
+                        """.formatted(input);
 
         var expected = "Username taken";
 
@@ -317,18 +301,12 @@ class AppUserControllerTest {
                 .satisfies(firstName -> assertThat(firstName).contains("Test"));
     }
 
+    @Override
+    public void initialize(@NonNull ConfigurableApplicationContext applicationContext) {
+        TestPropertySourceUtils.addInlinedPropertiesToEnvironment(
+                applicationContext,
+                "spring.rabbitmq.host=" + RABBIT_MQ_CONTAINER.getContainerIpAddress(), "spring.rabbitmq.port=" + RABBIT_MQ_CONTAINER.getMappedPort(5672));
 
-    public static class TwoShopApplicationTestsContextInitializer
-            implements ApplicationContextInitializer<ConfigurableApplicationContext> {
-
-        @Override
-        public void initialize(ConfigurableApplicationContext configurableApplicationContext) {
-
-            TestPropertySourceUtils.addInlinedPropertiesToEnvironment(
-                    configurableApplicationContext,
-                    "spring.rabbitmq.host=" + rabbit.getContainerIpAddress(), "spring.rabbitmq.port=" + rabbit.getMappedPort(5672));
-
-        }
     }
 
 

@@ -9,9 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -32,7 +30,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.Map;
 
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -42,11 +39,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @Testcontainers
-@ContextConfiguration(initializers = TwoShopBackendApplicationTests.TwoShopApplicationTestsContextInitializer.class)
+//@ContextConfiguration(initializers = TwoShopBackendApplicationTests.TwoShopApplicationTestsContextInitializer.class)
 @ExtendWith(SpringExtension.class)
 @AutoConfigureWebMvc
 @ActiveProfiles(value = "test")
-class TwoShopBackendApplicationTests {
+class TwoShopBackendApplicationTests extends AbstractContainerBaseTest{
 
 
     @Autowired
@@ -60,8 +57,8 @@ class TwoShopBackendApplicationTests {
     @Autowired
     PasswordEncoder passwordEncoder;
 
-    @Container
-    private static final RabbitMQContainer rabbit = new RabbitMQContainer("rabbitmq:3.9.5");
+//    @Container
+//    private static final RabbitMQContainer rabbit = new RabbitMQContainer("rabbitmq:3.9.5");
 
 
     @Test
@@ -158,19 +155,24 @@ class TwoShopBackendApplicationTests {
 
     }
 
+    @Override
+    public void initialize(ConfigurableApplicationContext applicationContext) {
+        TestPropertySourceUtils.addInlinedPropertiesToEnvironment(
+                applicationContext,
+                "spring.rabbitmq.host=" + RABBIT_MQ_CONTAINER.getContainerIpAddress(), "spring.rabbitmq.port=" + RABBIT_MQ_CONTAINER.getMappedPort(5672));
 
-    public static class TwoShopApplicationTestsContextInitializer
-            implements ApplicationContextInitializer<ConfigurableApplicationContext> {
-
-        @Override
-        public void initialize(ConfigurableApplicationContext configurableApplicationContext) {
-
-            TestPropertySourceUtils.addInlinedPropertiesToEnvironment(
-                    configurableApplicationContext,
-                    "spring.rabbitmq.host=" + rabbit.getContainerIpAddress(), "spring.rabbitmq.port=" + rabbit.getMappedPort(5672));
-
-        }
     }
+
+
+//    public static class TwoShopApplicationTestsContextInitializer
+//            implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+//
+//        @Override
+//        public void initialize(ConfigurableApplicationContext configurableApplicationContext) {
+//
+//
+//        }
+//    }
 
 }
 
