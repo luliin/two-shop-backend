@@ -218,15 +218,15 @@ public class ShoppingListService {
     }
 
 
-    public Flux<List<Item>> getShoppingListPublisher(Long shoppingListId, DataFetchingEnvironment environment) {
+    public Flux<ShoppingList> getShoppingListPublisher(Long shoppingListId, DataFetchingEnvironment environment) {
         log.info("In getShoppingListPublisher {}", shoppingListId);
         environment.getArguments().forEach((a, b) -> log.info("Arguments: {}={}", a, b));
 
-        return shoppingListSink.asFlux()
+        return  shoppingListSink.asFlux()
                 .filter(shoppingList -> shoppingListId.equals(shoppingList.getId()))
                 .map(shoppingList -> {
                     log.info("Publishing individual subscription update for Shopping list {}", shoppingList.getName());
-                    return shoppingList.getItems();
+                    return shoppingList;
                 }).log();
     }
 
