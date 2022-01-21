@@ -11,12 +11,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.MediaType;
+import org.springframework.lang.NonNull;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.support.TestPropertySourceUtils;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,8 +23,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.WebApplicationContext;
-import org.testcontainers.containers.RabbitMQContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.sql.Timestamp;
@@ -56,10 +53,6 @@ class TwoShopBackendApplicationTests extends AbstractContainerBaseTest{
 
     @Autowired
     PasswordEncoder passwordEncoder;
-
-//    @Container
-//    private static final RabbitMQContainer rabbit = new RabbitMQContainer("rabbitmq:3.9.5");
-
 
     @Test
     void contextLoads() {
@@ -156,23 +149,12 @@ class TwoShopBackendApplicationTests extends AbstractContainerBaseTest{
     }
 
     @Override
-    public void initialize(ConfigurableApplicationContext applicationContext) {
+    public void initialize(@NonNull ConfigurableApplicationContext applicationContext) {
         TestPropertySourceUtils.addInlinedPropertiesToEnvironment(
                 applicationContext,
                 "spring.rabbitmq.host=" + RABBIT_MQ_CONTAINER.getContainerIpAddress(), "spring.rabbitmq.port=" + RABBIT_MQ_CONTAINER.getMappedPort(5672));
 
     }
-
-
-//    public static class TwoShopApplicationTestsContextInitializer
-//            implements ApplicationContextInitializer<ConfigurableApplicationContext> {
-//
-//        @Override
-//        public void initialize(ConfigurableApplicationContext configurableApplicationContext) {
-//
-//
-//        }
-//    }
 
 }
 
