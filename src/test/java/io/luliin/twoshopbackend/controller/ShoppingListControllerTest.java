@@ -1,5 +1,6 @@
 package io.luliin.twoshopbackend.controller;
 
+import io.luliin.twoshopbackend.dto.DeletedListResponse;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.ShoppingList;
 import io.luliin.twoshopbackend.entity.UserRole;
@@ -7,8 +8,8 @@ import io.luliin.twoshopbackend.repository.AppUserRepository;
 import io.luliin.twoshopbackend.repository.ShoppingListRepository;
 import io.luliin.twoshopbackend.repository.UserRoleRepository;
 import io.luliin.twoshopbackend.security.JWTIssuer;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
-
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
@@ -20,6 +21,7 @@ import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.test.tester.WebGraphQlTester;
+import org.springframework.graphql.web.WebGraphQlHandler;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -28,12 +30,15 @@ import org.springframework.test.context.support.TestPropertySourceUtils;
 import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
 
 /**
  * @author Julia Wigenstedt
@@ -46,6 +51,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers
 @ActiveProfiles(value = "test")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@Slf4j
 class ShoppingListControllerTest {
 
     @Container
@@ -66,6 +72,9 @@ class ShoppingListControllerTest {
 
     @Autowired
     ShoppingListRepository shoppingListRepository;
+
+    @Autowired
+    WebGraphQlHandler webGraphQlHandler;
 
 
     static AppUserEntity testUser1;
@@ -567,7 +576,7 @@ class ShoppingListControllerTest {
     void deleteShoppingListForbiddenIfNotOwnerOrAdmin() {
         var userToken = jwtIssuer.generateToken(testUser2);
 
-        if(!shoppingListRepository.existsById(3L)) {
+        if (!shoppingListRepository.existsById(3L)) {
             ShoppingList newList = ShoppingList.builder()
                     .id(3L)
                     .name("Testlistan3")
@@ -607,7 +616,7 @@ class ShoppingListControllerTest {
     void deleteShoppingList() {
         var userToken = jwtIssuer.generateToken(testUser1);
 
-        if(!shoppingListRepository.existsById(3L)) {
+        if (!shoppingListRepository.existsById(3L)) {
             ShoppingList newList = ShoppingList.builder()
                     .id(3L)
                     .name("Testlistan3")
@@ -619,39 +628,220 @@ class ShoppingListControllerTest {
             shoppingListRepository.save(newList);
         }
 
-            var deleteShoppingListMutation =
-                    """
-                                    mutation {
-                                      deleteShoppingList(shoppingListId: 3) {
-                                        message
-                                        path
-                                        shoppingListId
-                                      }
+        var deleteShoppingListMutation =
+                """
+                                mutation {
+                                  deleteShoppingList(shoppingListId: 3) {
+                                    message
+                                    path
+                                    shoppingListId
+                                  }
+                                }
+                        """;
+
+        var expectedMessage = testUser1.getUsername() + " tog bort Testlistan3";
+
+        this.graphQlTester.query(deleteShoppingListMutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .path("deleteShoppingList.message")
+                .entity(String.class)
+                .satisfies(message -> {
+                    assertThat(message).isNotEmpty();
+                    assertThat(message).isEqualTo(expectedMessage);
+                });
+
+
+    }
+
+    @Test
+    @Order(10)
+    void itemModified() throws InterruptedException {
+        WebGraphQlTester subscriptionTester = WebGraphQlTester.create(webGraphQlHandler);
+
+        var userToken = jwtIssuer.generateToken(testUser1);
+
+        var shoppingListInput =
+                """
+                            {
+                              name: "Testlistan 4",
+                              collaboratorCredential: "testaren2"
+                            }
+                                        
+                        """;
+        var createShoppingListMutation = """
+                    mutation {
+                      createShoppingList(createShoppingListInput: %s) {
+                        id
+                      }
+                    }
+                """.formatted(shoppingListInput);
+
+
+        Long shoppingListId = graphQlTester.query(createShoppingListMutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .path("createShoppingList.id")
+                .entity(Long.class).get();
+
+        assertThat(shoppingListId).isNotNull();
+
+
+        var itemModifiedSubscription = """
+                    subscription {
+                        itemModified(shoppingListId: %d) {
+                            id
+                            items {
+                                id
+                                name
+                            }
+                        }
+                    }
+                """.formatted(shoppingListId);
+
+        Flux<ShoppingList> result = subscriptionTester.query(itemModifiedSubscription)
+                .executeSubscription()
+                .toFlux("itemModified", ShoppingList.class);
+
+        var firstItemName = "First";
+        var secondItemName = "Second";
+        var thirdItemName = "Third";
+
+
+        var verify = StepVerifier.create(result)
+                .consumeNextWith(shoppingList -> {
+                    log.info("Items: {}", shoppingList.getItems());
+                    assertThat(shoppingList.getItems()).isNotEmpty();
+                    assertThat(shoppingList.getItems().get(shoppingList.getItems().size()-1).getName()).isEqualTo(firstItemName);
+                })
+                .consumeNextWith(shoppingList -> {
+                    log.info("Items: {}", shoppingList.getItems());
+                    assertThat(shoppingList.getItems().get(shoppingList.getItems().size()-1).getName()).isEqualTo(secondItemName);
+                })
+                .consumeNextWith(shoppingList -> {
+                    log.info("Items: {}", shoppingList.getItems());
+                    assertThat(shoppingList.getItems().get(shoppingList.getItems().size()-1).getName()).isEqualTo(thirdItemName);
+                })
+                .thenCancel().verifyLater();
+
+
+        addItemToShoppingList(shoppingListId, userToken, firstItemName);
+        Thread.sleep(500);
+        addItemToShoppingList(shoppingListId, userToken, secondItemName);
+        Thread.sleep(500);
+        addItemToShoppingList(shoppingListId, userToken, thirdItemName);
+
+        verify.verify();
+
+
+    }
+
+    private void addItemToShoppingList(Long shoppingListId, String userToken, String expectedItemName) {
+        var modifyItemMutation = """
+                    mutation {
+                                modifyShoppingListItems(shoppingListItemInput: {shoppingListId: %d, itemInput: {name: "%s", quantity: 2, unit: ST}}) {
+                                    id
+                                    items {
+                                        id
+                                        name
                                     }
-                            """;
+                                }
+                            }
+                """.formatted(shoppingListId, expectedItemName);
 
-        var expectedMessage = testUser1.getUsername() +" tog bort Testlistan3";
-
-            this.graphQlTester.query(deleteShoppingListMutation)
-                    .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
-                    .execute()
-                    .path("deleteShoppingList.message")
-                    .entity(String.class)
-                    .satisfies(message -> {
-                        assertThat(message).isNotEmpty();
-                        assertThat(message).isEqualTo(expectedMessage);
-                    });
-
-
+        this.graphQlTester.query(modifyItemMutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .path("modifyShoppingListItems.id")
+                .entity(Long.class)
+                .isEqualTo(shoppingListId)
+                .path("modifyShoppingListItems.items[*].name")
+                .entityList(String.class)
+                .satisfies(itemNames -> assertThat(itemNames.get(itemNames.size()-1)).isEqualTo(expectedItemName));
     }
 
-    @Test
-    void itemModified() {
-    }
 
     @Test
+    @Order(11)
     void listDeleted() {
+        WebGraphQlTester subscriptionTester = WebGraphQlTester.create(webGraphQlHandler);
+
+        var userToken = jwtIssuer.generateToken(testUser1);
+
+        var expectedName = "Testlistan 5";
+
+        var shoppingListInput =
+                """
+                            {
+                              name: "%s",
+                              collaboratorCredential: "testaren2"
+                            }
+                                        
+                        """.formatted(expectedName);
+        var createShoppingListMutation = """
+                    mutation {
+                      createShoppingList(createShoppingListInput: %s) {
+                        id
+                      }
+                    }
+                """.formatted(shoppingListInput);
+
+
+        Long shoppingListId = graphQlTester.query(createShoppingListMutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .path("createShoppingList.id")
+                .entity(Long.class).get();
+
+        assertThat(shoppingListId).isNotNull();
+
+        var listDeletedSubscription = """
+                    subscription {
+                      listDeleted(shoppingListId: %d) {
+                          message
+                        	path
+                        	shoppingListId
+                      }
+                    }
+                """.formatted(shoppingListId);
+
+        Flux<DeletedListResponse> result = subscriptionTester.query(listDeletedSubscription)
+                .executeSubscription().toFlux("listDeleted", DeletedListResponse.class);
+
+        var expectedMessage = testUser1.getUsername() + " tog bort " + expectedName;
+
+        var verify = StepVerifier.create(result)
+                .consumeNextWith(response -> assertThat(response.message()).isEqualTo(expectedMessage))
+                .thenCancel()
+                .verifyLater();
+
+        deleteShoppingList(shoppingListId, userToken, expectedMessage);
+
+        verify.verify();
+
     }
+
+    private void deleteShoppingList(Long shoppingListId, String userToken, String expectedMessage) {
+        var deleteItemMutation = """
+                    mutation {
+                            deleteShoppingList(shoppingListId: %d) {
+                                message
+                                path
+                                shoppingListId
+                            }
+                        }
+                """.formatted(shoppingListId);
+
+        this.graphQlTester.query(deleteItemMutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .path("deleteShoppingList.shoppingListId")
+                .entity(Long.class)
+                .isEqualTo(shoppingListId);
+    }
+
+
+
 
 
     public static class TwoShopApplicationTestsContextInitializer
