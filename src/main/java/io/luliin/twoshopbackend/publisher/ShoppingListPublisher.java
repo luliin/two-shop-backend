@@ -2,7 +2,6 @@ package io.luliin.twoshopbackend.publisher;
 
 import graphql.schema.DataFetchingEnvironment;
 import io.luliin.twoshopbackend.entity.ShoppingList;
-import io.luliin.twoshopbackend.messaging.RabbitSender;
 import io.luliin.twoshopbackend.repository.ShoppingListRepository;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -25,9 +24,6 @@ import javax.annotation.PostConstruct;
 public class ShoppingListPublisher {
 
     private Sinks.Many<ShoppingList> shoppingListSink;
-
-    private final RabbitSender rabbitSender;
-
     private final ShoppingListRepository shoppingListRepository;
 
     @PostConstruct
@@ -55,7 +51,7 @@ public class ShoppingListPublisher {
         log.info("In getShoppingListPublisher {}", shoppingListId);
         environment.getArguments().forEach((a, b) -> log.info("Arguments: {}={}", a, b));
 
-        return  shoppingListSink.asFlux()
+        return shoppingListSink.asFlux()
                 .filter(shoppingList -> shoppingListId.equals(shoppingList.getId()))
                 .map(shoppingList -> {
                     log.info("Publishing individual subscription update for Shopping list {}", shoppingList.getName());
