@@ -1,0 +1,41 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: twoshop
+  datasource:
+    password: ${POSTGRES_PASSWORD}
+    url: jdbc:postgresql://localhost:5432/twoshop
+    username: ${POSTGRES_USER}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: false
+  graphql:
+    graphiql:
+      enabled: true
+    websocket:
+      path: "/subscription"
+      connection-init-timeout:
+    cors:
+      allowed-origins: "http://localhost:3000/"
+  rabbitmq:
+    host: ${RABBIT_HOST}
+    port: 5672
+    password: ${RABBIT_PASSWORD}
+    username: ${RABBIT_USERNAME}
+    addresses: ${RABBIT_URL}
+    listener:
+      direct:
+        default-requeue-rejected: false
+      simple:
+        default-requeue-rejected: false
+
+security:
+  signingkey: ${SECURITY_SIGNING_KEY}
+  algorithm: "HS512"
+  validMinutes: 4320

@@ -1,9 +1,10 @@
 package io.luliin.twoshopbackend.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import io.luliin.twoshopbackend.dto.ModifiedShoppingList;
+import lombok.*;
+import lombok.experimental.Accessors;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import javax.persistence.*;
 import java.sql.Timestamp;
@@ -22,6 +23,8 @@ import java.util.List;
 @NoArgsConstructor
 @Getter
 @Setter
+@Builder
+@Accessors(chain = true)
 public class ShoppingList {
     @SequenceGenerator(
             name = "shopping_list_id_sequence",
@@ -44,7 +47,10 @@ public class ShoppingList {
     private Timestamp createdAt;
     @Column(nullable = false)
     private Timestamp updatedAt;
-    @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL, mappedBy = "shoppingList")
+    @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL, mappedBy = "shoppingList", fetch = FetchType.EAGER)
+    @Fetch(value = FetchMode.SELECT)
+    @OrderBy("id ASC")
+    @Builder.Default
     List<Item> items = new ArrayList<>();
 
     public void addItem(Item item) {
@@ -53,7 +59,18 @@ public class ShoppingList {
     }
 
     public void removeItem(Item item) {
+        if ((item.getShoppingList() != this)) {
+            throw new IllegalArgumentException("The item does not belong to this shopping list");
+        }
         items.remove(item);
         item.setShoppingList(null);
+    }
+
+    public ModifiedShoppingList toModifiedShoppingList(String message) {
+        return new ModifiedShoppingList(this, message);
+    }
+
+    public void removeAllItems() {
+        items.clear();
     }
 }

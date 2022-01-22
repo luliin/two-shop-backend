@@ -1,9 +1,6 @@
 package io.luliin.twoshopbackend.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
@@ -19,7 +16,9 @@ import javax.validation.constraints.NotBlank;
 @NoArgsConstructor
 @Entity
 @Setter
+@Getter
 @Builder
+@ToString
 public class Item {
 
     @SequenceGenerator(
@@ -33,12 +32,14 @@ public class Item {
     )
     @Id
     private Long id;
-    @NotBlank
+    @NotBlank(message = "Ogiltigt namn på produkten")
     private String name;
     private Double quantity;
     @Enumerated(EnumType.STRING)
     private Unit unit;
+    private Boolean isCompleted;
     @ManyToOne(optional = false)
+    @ToString.Exclude
     private ShoppingList shoppingList;
 
 

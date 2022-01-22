@@ -7,6 +7,8 @@ import io.luliin.twoshopbackend.input.AppUserInput;
 import io.luliin.twoshopbackend.repository.AppUserRepository;
 import io.luliin.twoshopbackend.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
@@ -24,7 +26,9 @@ public class AppUserService {
 
     private final AppUserRepository appUserRepository;
     private final UserRoleRepository userRoleRepository;
+    private final PasswordEncoder passwordEncoder;
 
+    @PreAuthorize("hasRole('ROLE_ADMIN') || hasRole('ROLE_SUPER_ADMIN')")
     public List<AppUser> allUsers() {
         return appUserRepository.findAll().stream()
                 .map(AppUserEntity::toAppUser)
@@ -38,12 +42,13 @@ public class AppUserService {
         if(appUserRepository.existsByEmail(appUserInput.email())) {
             throw new IllegalArgumentException("Email already in use");
         }
+
         AppUserEntity newUser = AppUserEntity.builder()
                 .firstName(appUserInput.firstName())
                 .lastName(appUserInput.lastName())
                 .username(appUserInput.username())
                 .email(appUserInput.email())
-                .password(appUserInput.password())
+                .password(passwordEncoder.encode(appUserInput.password()))
                 .createdAt(Timestamp.valueOf(LocalDateTime.now()))
                 .updatedAt(Timestamp.valueOf(LocalDateTime.now()))
                 .build();
@@ -53,6 +58,7 @@ public class AppUserService {
         return appUserRepository.save(newUser).toAppUser();
     }
 
+    @PreAuthorize("isAuthenticated()")
     public AppUser userById(Long userId) {
         AppUserEntity user = appUserRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("No such user"));

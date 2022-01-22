@@ -5,3 +5,26 @@ input AppUserInput {
     email: String!
     password: String!
 }
+
+input ShoppingListItemInput {
+    shoppingListId : ID!
+    itemInput : ItemInput
+}
+
+input ItemInput {
+    name: String!
+    quantity : Float
+    unit : Unit
+    isCompleted : Boolean
+}
+
+input CreateShoppingListInput {
+    # The collaborator's email or username, if there is one.
+    collaboratorCredential : String
+    name : String!
+}
+
+input HandleCollaboratorInput {
+    shoppingListId: ID!
+    collaboratorCredential: String!
+}

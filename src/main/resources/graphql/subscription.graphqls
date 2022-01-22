@@ -1,0 +1,7 @@
+"""Available subscriptions in Two Shop api."""
+type Subscription {
+    subscribeToShoppingLists(shoppingListId: ID!) : ShoppingList
+    "By providing the shopping list id a user can subscribe to every change the item list goes through."
+    itemModified(shoppingListId: ID!) : ShoppingList
+    listDeleted(shoppingListId: ID!) : DeletedListResponse!
+}

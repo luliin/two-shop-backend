@@ -33,3 +33,7 @@ build/
 .vscode/
 
 .env
+
+
+### local rabbitmq configuration ###
+rabbitmq.conf
