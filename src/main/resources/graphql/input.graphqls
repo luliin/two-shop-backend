@@ -28,3 +28,20 @@ input HandleCollaboratorInput {
     shoppingListId: ID!
     collaboratorCredential: String!
 }
+
+input UpdateUserInput {
+    updatedEmail: String
+    updatedFirstName: String
+    updatedLastName: String
+}
+
+input AdminUpdateUserInput {
+    userId: ID!
+    newEmail: String
+    newUsername: String
+    newFirstName: String
+    newLastName: String
+    newPassword: String
+    setAsAdmin: Boolean
+    removeAsAdmin: Boolean
+}

@@ -36,7 +36,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @Testcontainers
-//@ContextConfiguration(initializers = TwoShopBackendApplicationTests.TwoShopApplicationTestsContextInitializer.class)
 @ExtendWith(SpringExtension.class)
 @AutoConfigureWebMvc
 @ActiveProfiles(value = "test")

@@ -5,19 +5,29 @@ Observe that all mutations except for addUser need an Authorization header with 
 type Mutation {
     "Creates a new user with basic user privileges, such as creating shopping lists and collaborating on list by invite."
     addUser(appUserInput: AppUserInput!) : AppUser!
+    "Updates the active user's account information"
+    updateUser(updateUserInput: UpdateUserInput!): ModifiedAppUser!
+    "Updates the active user's password"
+    updatePassword(oldPassword: String! newPassword: String!) : ModifiedAppUser!
+    "This mutation only available to admin can update user information"
+    adminUpdateUserInformation(adminUpdateUserInput: AdminUpdateUserInput!) : ModifiedAppUser!
     "Creates a new shopping list with the set name, with the option to include a collaborator if there is any."
     createShoppingList(createShoppingListInput : CreateShoppingListInput!) : ShoppingList!
     """This is an all purpose mutation handling most use cases of item mutation on a specific shopping list.
     If itemId is provided the item with said id will be updated with the new information provided from the nested
     ItemInput.
     If itemId is provided and removeItem is set to true the item will be removed from the list.
-    Callable by list owner, collaborator and admin"""
+    Callable by list owner, collaborator and admin."""
     modifyShoppingListItems(itemId: ID, removeItem: Boolean, shoppingListItemInput: ShoppingListItemInput!) : ShoppingList!
-    ""
+    "A shopping list owner can, by calling this mutation, invite a collaborator to their shopping list."
     inviteCollaborator(handleCollaboratorInput: HandleCollaboratorInput!) : ModifiedShoppingList!
+    "A shopping list owner or collaborator can, by calling this mutation, remove collaborator from this shopping list."
     removeCollaborator(handleCollaboratorInput: HandleCollaboratorInput!) : ModifiedShoppingList!
+    "Changes a shopping list's name."
     changeShoppingListName(shoppingListId: ID!, newName: String!) : ModifiedShoppingList!
+    "Clears a shopping list from all items. Can not be undone."
     clearAllItems(shoppingListId: ID!) : ModifiedShoppingList!
+    "Deletes a shopping list. Only available to owner and admin. Can not be undone."
     deleteShoppingList(shoppingListId: ID!) : DeletedListResponse!
 }
 
