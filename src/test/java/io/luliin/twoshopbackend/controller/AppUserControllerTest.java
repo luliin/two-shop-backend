@@ -2,6 +2,7 @@ package io.luliin.twoshopbackend.controller;
 
 
 import io.luliin.twoshopbackend.AbstractContainerBaseTest;
+import io.luliin.twoshopbackend.dto.ModifiedAppUser;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.UserRole;
 import io.luliin.twoshopbackend.repository.AppUserRepository;
@@ -20,6 +21,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.graphql.test.tester.WebGraphQlTester;
 import org.springframework.lang.NonNull;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -30,6 +32,8 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
+
 
 /**
  * @author Julia Wigenstedt
@@ -56,6 +60,9 @@ class AppUserControllerTest extends AbstractContainerBaseTest {
 
     @Autowired
     AppUserRepository appUserRepository;
+
+    @Autowired
+    PasswordEncoder passwordEncoder;
 
     @Autowired
     JWTIssuer jwtIssuer;
@@ -88,7 +95,8 @@ class AppUserControllerTest extends AbstractContainerBaseTest {
 
     @BeforeAll
     public static void init(@Autowired UserRoleRepository userRoleRepository,
-                            @Autowired AppUserRepository appUserRepository) {
+                            @Autowired AppUserRepository appUserRepository,
+                            @Autowired PasswordEncoder passwordEncoder) {
 
         if (!userRoleRepository.existsByRole(UserRole.Role.USER)) {
             System.out.println("Adding role " + UserRole.Role.USER.name());
@@ -109,7 +117,7 @@ class AppUserControllerTest extends AbstractContainerBaseTest {
                 .id(1L)
                 .username("testaren")
                 .email("test@test.com")
-                .password("password")
+                .password(passwordEncoder.encode("password"))
                 .firstName("Test")
                 .lastName("Testsson")
                 .createdAt(Timestamp.valueOf(LocalDateTime.now()))
@@ -125,7 +133,7 @@ class AppUserControllerTest extends AbstractContainerBaseTest {
                 .id(2L)
                 .username("testaren2")
                 .email("test2@test.com")
-                .password("password")
+                .password(passwordEncoder.encode("password"))
                 .firstName("Test2")
                 .lastName("Testsson2")
                 .createdAt(Timestamp.valueOf(LocalDateTime.now()))
@@ -299,6 +307,225 @@ class AppUserControllerTest extends AbstractContainerBaseTest {
                 .path("userById.firstName")
                 .entity(String.class)
                 .satisfies(firstName -> assertThat(firstName).contains("Test"));
+    }
+
+
+    @Test
+    void updateUser() {
+
+        var userToken = jwtIssuer.generateToken(testUser);
+        var expectedFirstName = "Test-Arne";
+        var unexpectedFirstName = testUser.getFirstName();
+        var expectedMessage = "Din information har uppdaterats!";
+        var updateUserMutation = """
+                    mutation {
+                        updateUser(updateUserInput:{
+                        updatedFirstName: "%s"} ) {
+                            appUser {
+                                id
+                                firstName
+                                lastName
+                            }
+                            message
+                        }
+                    }
+                """.formatted(expectedFirstName);
+
+        this.graphQlTester.query(updateUserMutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .path("updateUser")
+                .entity(ModifiedAppUser.class)
+                .satisfies(modifiedAppUser -> {
+                    var appUser = modifiedAppUser.appUser();
+                    assertThat(appUser.getId()).isEqualTo(testUser.getId());
+                    assertThat(appUser.getFirstName()).isNotEqualTo(unexpectedFirstName);
+                    assertThat(appUser.getFirstName()).isEqualTo(expectedFirstName);
+                    assertThat(appUser.getLastName()).isEqualTo(testUser.getLastName());
+                    assertThat(appUser.getUsername()).isNull();
+                    assertThat(modifiedAppUser.message()).isEqualTo(expectedMessage);
+                });
+    }
+
+    @Test
+    void updateUserNoInformationValidationError() {
+
+        var userToken = jwtIssuer.generateToken(testUser);
+        var updateUserMutation = """
+                    mutation {
+                        updateUser(updateUserInput:{} ) {
+                            message
+                        }
+                    }
+                """;
+
+        var expectedErrorMessage = "Du har inte angett någon ny information.";
+        this.graphQlTester.query(updateUserMutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .errors()
+                .satisfy(errors -> {
+                    assertThat(errors.get(0).getErrorType()).isEqualTo(graphql.ErrorType.ValidationError);
+                    assertThat(errors.get(0).getMessage()).isEqualTo(expectedErrorMessage);
+                });
+    }
+
+    @Test
+    void updateUserEmailValidationError() {
+
+        var userToken = jwtIssuer.generateToken(testUser);
+        var updateUserMutation = """
+                    mutation {
+                        updateUser(updateUserInput:{
+                        updatedEmail: "email"} ) {
+                            message
+                        }
+                    }
+                """;
+
+        var expectedErrorMessage = "Ogiltig e-post";
+        this.graphQlTester.query(updateUserMutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .errors()
+                .satisfy(errors -> {
+                    assertThat(errors.get(0).getErrorType()).isEqualTo(graphql.ErrorType.ValidationError);
+                    assertThat(errors.get(0).getMessage()).isEqualTo(expectedErrorMessage);
+                    assertThat(errors.get(0).getPath()).contains("updateUser");
+                });
+    }
+
+    @Test
+    void unauthenticatedCannotUpdateUser() {
+
+        var updateUserMutation = """
+                    mutation {
+                        updateUser(updateUserInput:{
+                        updatedEmail: "email"} ) {
+                            message
+                        }
+                    }
+                """;
+
+        var expectedErrorMessage = "Unauthorized";
+        this.graphQlTester.query(updateUserMutation)
+                .execute()
+                .errors()
+                .satisfy(errors -> {
+                    assertThat(errors.get(0).getErrorType()).isEqualTo(ErrorType.UNAUTHORIZED);
+                    assertThat(errors.get(0).getMessage()).isEqualTo(expectedErrorMessage);
+                    assertThat(errors.get(0).getPath()).contains("updateUser");
+                });
+    }
+
+    @Test
+    void updatePassword() {
+        var userToken = jwtIssuer.generateToken(testUser);
+
+        var newPassword = "newPassword";
+
+        var expectedMessage = "Ditt lösenord har uppdaterats!";
+        var updatePasswordMutation = """
+                    mutation {
+                        updatePassword(oldPassword: "password", newPassword: "%s" ) {
+                            message
+                        }
+                    }
+                """.formatted(newPassword);
+
+        this.graphQlTester.query(updatePasswordMutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .path("updatePassword.message")
+                .entity(String.class)
+                .isEqualTo(expectedMessage);
+
+        var updatedUser = appUserRepository.findById(testUser.getId())
+                .orElseThrow(() -> new RuntimeException("An unexpected error occurred"));
+
+        assertTrue(this.passwordEncoder.matches(newPassword, updatedUser.getPassword()));
+    }
+
+    @Test
+    void updatePasswordFailsIfOldPasswordIsWrong() {
+        var userToken = jwtIssuer.generateToken(testUser);
+
+        var newPassword = "newPassword";
+
+        var expectedMessage = "Fel lösenord. Försök igen!";
+        var updatePasswordMutation = """
+                    mutation {
+                        updatePassword(oldPassword: "invalid_password", newPassword: "%s" ) {
+                            message
+                        }
+                    }
+                """.formatted(newPassword);
+
+        this.graphQlTester.query(updatePasswordMutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .errors()
+                .satisfy(errors -> {
+                    assertThat(errors).size().isEqualTo(1);
+                    assertThat(errors.get(0).getMessage()).isEqualTo(expectedMessage);
+                    assertThat(errors.get(0).getErrorType()).isEqualTo(graphql.ErrorType.ValidationError);
+                });
+
+        var updatedUser = appUserRepository.findById(testUser.getId())
+                .orElseThrow(() -> new RuntimeException("An unexpected error occurred"));
+
+        assertFalse(this.passwordEncoder.matches(newPassword, updatedUser.getPassword()));
+    }
+
+    @Test
+    void adminUpdateUserInformationNonAdminForbidden() {
+        var userToken = jwtIssuer.generateToken(testUser);
+
+        var adminUpdateUserMutation = """
+                    mutation {
+                        adminUpdateUserInformation(adminUpdateUserInput: {
+                            userId: 2
+                        } ) {
+                            message
+                        }
+                    }
+                """;
+
+        this.graphQlTester.query(adminUpdateUserMutation)
+                .httpHeaders(httpHeaders -> httpHeaders.setBearerAuth(userToken))
+                .execute()
+                .errors()
+                .satisfy(errors -> {
+                    assertThat(errors).size().isEqualTo(1);
+                    assertThat(errors.get(0).getErrorType()).isEqualTo(ErrorType.FORBIDDEN);
+                });
+
+
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminUpdateUserInformationValidationError() {
+        var adminUpdateUserMutation = """
+                    mutation {
+                        adminUpdateUserInformation(adminUpdateUserInput: {
+                            userId: 2
+                        } ) {
+                            message
+                        }
+                    }
+                """;
+
+        var expectedMessage = "No fields to update have been provided";
+        this.graphQlTester.query(adminUpdateUserMutation)
+                .execute()
+                .errors()
+                .satisfy(errors -> {
+                    assertThat(errors).size().isEqualTo(1);
+                    assertThat(errors.get(0).getErrorType()).isEqualTo(graphql.ErrorType.ValidationError);
+                    assertThat(errors.get(0).getMessage()).isEqualTo(expectedMessage);
+                });
+
     }
 
     @Override
