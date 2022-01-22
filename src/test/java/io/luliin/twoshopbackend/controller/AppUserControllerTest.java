@@ -2,14 +2,14 @@ package io.luliin.twoshopbackend.controller;
 
 
 import io.luliin.twoshopbackend.AbstractContainerBaseTest;
+import io.luliin.twoshopbackend.dto.AppUser;
 import io.luliin.twoshopbackend.dto.ModifiedAppUser;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.UserRole;
 import io.luliin.twoshopbackend.repository.AppUserRepository;
 import io.luliin.twoshopbackend.repository.UserRoleRepository;
 import io.luliin.twoshopbackend.security.JWTIssuer;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -32,7 +32,8 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 /**
@@ -43,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @AutoConfigureWebGraphQlTester
 @ExtendWith({MockitoExtension.class, SpringExtension.class})
 @Testcontainers
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @ActiveProfiles(value = "test")
 class AppUserControllerTest extends AbstractContainerBaseTest {
 
@@ -526,6 +528,38 @@ class AppUserControllerTest extends AbstractContainerBaseTest {
                     assertThat(errors.get(0).getMessage()).isEqualTo(expectedMessage);
                 });
 
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    @Order(1)
+    void usersByEmailOrUsernameContaining() {
+
+        var firstCredential = ".com";
+        var secondCredential = "test";
+
+        var usersByEmailOrUsernameContaining = """
+                    {
+                        usersByEmailOrUsernameContaining(userCredential: "%s") {
+                            id
+                            email
+                        }
+                    }
+                """;
+        String expectEmptyQuery = usersByEmailOrUsernameContaining.formatted(firstCredential);
+        String expectTwoQuery = usersByEmailOrUsernameContaining.formatted(secondCredential);
+
+        this.graphQlTester.query(expectEmptyQuery)
+                .execute()
+                .path("usersByEmailOrUsernameContaining")
+                .entityList(AppUser.class)
+                .satisfies(users -> assertThat(users).size().isEqualTo(0));
+
+        this.graphQlTester.query(expectTwoQuery)
+                .execute()
+                .path("usersByEmailOrUsernameContaining")
+                .entityList(AppUser.class)
+                .satisfies(users -> assertThat(users).size().isEqualTo(2));
     }
 
     @Override
