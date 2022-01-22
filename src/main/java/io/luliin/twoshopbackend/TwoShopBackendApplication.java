@@ -20,7 +20,6 @@ public class TwoShopBackendApplication {
     @Bean
     public CommandLineRunner commandLineRunner(@Autowired UserRoleRepository roleRepository) {
         return args -> {
-            System.out.println(System.getenv("POSTGRES_PASSWORD"));
             saveRoleIfNotPresent(roleRepository, UserRole.Role.USER, 1L);
 
             saveRoleIfNotPresent(roleRepository, UserRole.Role.ADMIN, 2L);

@@ -29,4 +29,8 @@ public class AppUser {
     private String lastName;
     private Timestamp createdAt;
     private Timestamp updatedAt;
+
+    public ModifiedAppUser toModifiedAppUser(String message) {
+        return new ModifiedAppUser(this, message);
+    }
 }

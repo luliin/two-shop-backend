@@ -1,0 +1,38 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: twoshop
+  datasource:
+    password: ${POSTGRES_PASSWORD}
+    url: jdbc:h2:mem:testdb
+    username: ${POSTGRES_USER}
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+    show-sql: false
+  graphql:
+    graphiql:
+      enabled: true
+    websocket:
+      path: "/subscription"
+      connection-init-timeout:
+    cors:
+      allowed-origins: "http://localhost:3000/"
+  rabbitmq:
+    listener:
+      direct:
+        default-requeue-rejected: false
+      simple:
+        default-requeue-rejected: false
+
+security:
+  signingKey: ${SECURITY_SIGNING_KEY}
+  algorithm: "HS512"
+  validMinutes: 4320
+
+

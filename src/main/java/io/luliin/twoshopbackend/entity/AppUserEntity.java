@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.luliin.twoshopbackend.dto.AppUser;
 import io.luliin.twoshopbackend.repository.UserRoleRepository;
 import lombok.*;
+import lombok.experimental.Accessors;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,9 +24,11 @@ import java.util.stream.Collectors;
  */
 @Entity
 @Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Accessors(chain = true)
 @Table(name = "app_user")
 public class AppUserEntity implements UserDetails {
 
@@ -39,7 +42,6 @@ public class AppUserEntity implements UserDetails {
             generator = "app_user_id_sequence"
     )
     @Id
-
     private Long id;
     @Column(nullable = false, unique = true, length = 36)
     private String username;
@@ -76,12 +78,21 @@ public class AppUserEntity implements UserDetails {
         UserRole currentRole = roleRepository.findByRole(role)
                 .orElseThrow(() -> new IllegalArgumentException("Illegal role"));
 
-        if(roles == null) {
+        if (roles == null) {
             roles = new ArrayList<>();
         }
-        if(!roles.contains(currentRole)) {
+        if (!roles.contains(currentRole)) {
             roles.add(currentRole);
         }
+    }
+
+    public void removeUserRole(UserRole.Role role, UserRoleRepository roleRepository) {
+        UserRole currentRole = roleRepository.findByRole(role)
+                .orElseThrow(() -> new IllegalArgumentException("Illegal role"));
+        if (currentRole.getRole().equals(UserRole.Role.USER)) {
+            throw new IllegalArgumentException("Can not delete user role");
+        }
+        roles.remove(currentRole);
     }
 
     @Override

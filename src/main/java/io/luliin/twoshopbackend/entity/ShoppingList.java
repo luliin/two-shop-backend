@@ -50,6 +50,7 @@ public class ShoppingList {
     @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL, mappedBy = "shoppingList", fetch = FetchType.EAGER)
     @Fetch(value = FetchMode.SELECT)
     @OrderBy("id ASC")
+    @Builder.Default
     List<Item> items = new ArrayList<>();
 
     public void addItem(Item item) {

@@ -1,6 +1,5 @@
 package io.luliin.twoshopbackend.controller;
 
-import graphql.GraphQLContext;
 import graphql.schema.DataFetchingEnvironment;
 import io.luliin.twoshopbackend.dto.AppUser;
 import io.luliin.twoshopbackend.dto.DeletedListResponse;
@@ -93,7 +92,7 @@ public class ShoppingListController {
 
 
     @SubscriptionMapping
-    public Publisher<List<Item>> itemModified(@Argument Long shoppingListId, DataFetchingEnvironment environment) {
+    public Publisher<ShoppingList> itemModified(@Argument Long shoppingListId, DataFetchingEnvironment environment) {
         log.info("In subscription mapping for shoppingListId {}", shoppingListId);
         return shoppingListService.getShoppingListPublisher(shoppingListId, environment);
     }

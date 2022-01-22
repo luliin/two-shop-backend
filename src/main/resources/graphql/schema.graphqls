@@ -93,3 +93,8 @@ type DeletedListResponse {
     path: String!
     shoppingListId: ID!
 }
+
+type ModifiedAppUser {
+    appUser: AppUser!
+    message: String!
+}
