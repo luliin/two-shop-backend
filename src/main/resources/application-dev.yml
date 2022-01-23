@@ -36,3 +36,8 @@ security:
   signingKey: ${SECURITY_SIGNING_KEY}
   algorithm: "HS512"
   validMinutes: 4320
+  sendgrid-key: ${SENDGRID_BASIC}
+
+
+mail:
+  welcome-url: ${WELCOME_MAIL_URL}
