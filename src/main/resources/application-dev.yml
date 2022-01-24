@@ -37,7 +37,4 @@ security:
   algorithm: "HS512"
   validMinutes: 4320
   sendgrid-key: ${SENDGRID_BASIC}
-
-
-mail:
-  welcome-url: ${WELCOME_MAIL_URL}
+  welcomeURL: ${WELCOME_MAIL_URL}

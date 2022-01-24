@@ -1,8 +1,6 @@
 package io.luliin.twoshopbackend.security;
 
 
-import graphql.ExecutionInput;
-import graphql.GraphQLContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.graphql.web.WebInput;
 import org.springframework.graphql.web.WebInterceptorChain;

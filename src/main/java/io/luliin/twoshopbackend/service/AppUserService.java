@@ -10,6 +10,7 @@ import io.luliin.twoshopbackend.exception.InvalidEmailException;
 import io.luliin.twoshopbackend.input.AdminUpdateUserInput;
 import io.luliin.twoshopbackend.input.AppUserInput;
 import io.luliin.twoshopbackend.input.UpdateUserInput;
+import io.luliin.twoshopbackend.mail.MailSender;
 import io.luliin.twoshopbackend.repository.AppUserRepository;
 import io.luliin.twoshopbackend.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,7 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
     private final AppUserRepository appUserRepository;
     private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MailSender mailSender;
 
     @PreAuthorize("hasRole('ROLE_ADMIN') || hasRole('ROLE_SUPER_ADMIN')")
     public List<AppUser> allUsers() {
@@ -70,7 +72,9 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
 
         newUser.addUserRole(UserRole.Role.USER, userRoleRepository);
 
-        return appUserRepository.save(newUser).toAppUser();
+        final AppUser appUser = appUserRepository.save(newUser).toAppUser();
+        mailSender.sendWelcomeMessage(appUser);
+        return appUser;
     }
 
     @PreAuthorize("isAuthenticated()")

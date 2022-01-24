@@ -1,7 +1,7 @@
 package io.luliin.twoshopbackend.messaging;
 
 import io.luliin.twoshopbackend.dto.DeletedListResponse;
-import io.luliin.twoshopbackend.entity.*;
+import io.luliin.twoshopbackend.entity.ShoppingList;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.TopicExchange;

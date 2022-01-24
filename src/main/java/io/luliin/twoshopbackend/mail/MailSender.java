@@ -2,31 +2,31 @@ package io.luliin.twoshopbackend.mail;
 
 import io.luliin.twoshopbackend.dto.AppUser;
 import io.luliin.twoshopbackend.dto.mail.UserPayload;
-
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
+import java.net.URI;
 
 /**
  * @author Julia Wigenstedt
  * Date: 2022-01-23
  */
-@Service
 @Slf4j
 public class MailSender {
 
     private final RestTemplate restTemplate;
 
-    @Value("${mail.welcome-url}")
-    private String welcomeUrl;
+    private final String welcomeUrl;
 
-    public MailSender() {
+    public MailSender(String welcomeUrl) {
+        this.welcomeUrl = welcomeUrl;
         this.restTemplate = new RestTemplate();
     }
 
     public String sendWelcomeMessage(AppUser appUser) {
+        System.out.println(welcomeUrl);
+        URI welcomeUri = URI.create(welcomeUrl);
 
         UserPayload userPayload = new UserPayload(appUser.getUsername(),
                 appUser.getEmail(),
@@ -35,7 +35,7 @@ public class MailSender {
                 null);
 
         final ResponseEntity<EmailResponse> emailResponseResponseEntity =
-                this.restTemplate.postForEntity(welcomeUrl, appUser, EmailResponse.class);
+                this.restTemplate.postForEntity(welcomeUri, appUser, EmailResponse.class);
         log.info("Email sent with response body {}", emailResponseResponseEntity.getBody());
         var statusCode = emailResponseResponseEntity.getStatusCodeValue();
         if(statusCode < 200 || statusCode > 299) {
