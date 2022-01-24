@@ -54,8 +54,8 @@ public class AppUserController {
     }
 
     @MutationMapping
-    public ModifiedAppUser updateUser(@Argument UpdateUserInput updateUserInput, Principal principal, DataFetchingEnvironment environment) {
-        return appUserService.updateUser(updateUserInput, principal.getName(), environment);
+    public ModifiedAppUser updateUser(@Argument UpdateUserInput updateUserInput, Principal principal) {
+        return appUserService.updateUser(updateUserInput, principal.getName());
     }
 
     @MutationMapping
@@ -64,8 +64,8 @@ public class AppUserController {
     }
 
     @MutationMapping
-    public ModifiedAppUser adminUpdateUserInformation(@Argument AdminUpdateUserInput adminUpdateUserInput, DataFetchingEnvironment environment) {
-        return appUserService.adminUpdateUser(adminUpdateUserInput, environment);
+    public ModifiedAppUser adminUpdateUserInformation(@Argument AdminUpdateUserInput adminUpdateUserInput) {
+        return appUserService.adminUpdateUser(adminUpdateUserInput);
     }
 
 

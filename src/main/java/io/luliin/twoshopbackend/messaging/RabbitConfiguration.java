@@ -21,6 +21,11 @@ public class RabbitConfiguration {
         return new TopicExchange("topic");
     }
 
+    @Bean
+    public TopicExchange mailTopic() {
+        return new TopicExchange("mail");
+    }
+
     // Needs to be anonymous, otherwise two instances of this application will receive every other message.
     @Bean
     public Queue queue1() {
@@ -31,6 +36,12 @@ public class RabbitConfiguration {
     public Queue queue2() {
         return new AnonymousQueue();
     }
+
+    @Bean
+    public Queue mailQueue() {
+        return new Queue("mail");
+    }
+
 
     @Bean
     public Binding forwardBinding(TopicExchange topic,
@@ -48,6 +59,12 @@ public class RabbitConfiguration {
                 .with("deleted.*");
     }
 
+    @Bean
+    public Binding mailBinding() {
+        return BindingBuilder.bind(mailQueue())
+                .to(mailTopic())
+                .with("confirm.*");
+    }
 
 
     @Bean
