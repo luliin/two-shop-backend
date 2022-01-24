@@ -21,16 +21,16 @@ import java.time.LocalDateTime;
 public class TwoShopBackendApplication {
 
 
-    @Value("${ADMIN_USERNAME}")
-    private String username;
-    @Value("${ADMIN_PASSWORD}")
-    private String password;
-    @Value("${ADMIN_FIRSTNAME}")
-    private String firstName;
-    @Value("${ADMIN_LASTNAME}")
-    private String lastName;
-    @Value("${ADMIN_EMAIL}")
-    private String email;
+//    @Value("${ADMIN_USERNAME}")
+//    private String username;
+//    @Value("${ADMIN_PASSWORD}")
+//    private String password;
+//    @Value("${ADMIN_FIRSTNAME}")
+//    private String firstName;
+//    @Value("${ADMIN_LASTNAME}")
+//    private String lastName;
+//    @Value("${ADMIN_EMAIL}")
+//    private String email;
 
     public static void main(String[] args) {
         SpringApplication.run(TwoShopBackendApplication.class, args);
@@ -49,7 +49,7 @@ public class TwoShopBackendApplication {
 
             saveRoleIfNotPresent(roleRepository, UserRole.Role.SUPER_ADMIN, 3L);
 
-            saveAdminIfNotPresent(appUserRepository, roleRepository, passwordEncoder);
+//            saveAdminIfNotPresent(appUserRepository, roleRepository, passwordEncoder);
 
         };
     }
@@ -60,28 +60,28 @@ public class TwoShopBackendApplication {
         }
     }
 
-    private void saveAdminIfNotPresent(AppUserRepository appUserRepository,
-                                       UserRoleRepository roleRepository,
-                                       PasswordEncoder passwordEncoder) {
-        if(!appUserRepository.existsByUsername(username)) {
-            AppUserEntity superAdmin = AppUserEntity.builder()
-                    .firstName(firstName)
-                    .lastName(lastName)
-                    .username(username)
-                    .email(email)
-                    .createdAt(Timestamp.valueOf(LocalDateTime.now()))
-                    .updatedAt(Timestamp.valueOf(LocalDateTime.now()))
-                    .password(passwordEncoder.encode(password))
-                    .build();
-
-            superAdmin.addUserRole(UserRole.Role.ADMIN, roleRepository);
-            superAdmin.addUserRole(UserRole.Role.SUPER_ADMIN, roleRepository);
-            superAdmin.addUserRole(UserRole.Role.USER, roleRepository);
-
-            final AppUserEntity savedSuperAdmin = appUserRepository.save(superAdmin);
-            log.info("SUPER_ADMIN {} has been saved to database", savedSuperAdmin.getUsername());
-        } else {
-            log.info("SUPER_ADMIN {} already exists", username);
-        }
-    }
+//    private void saveAdminIfNotPresent(AppUserRepository appUserRepository,
+//                                       UserRoleRepository roleRepository,
+//                                       PasswordEncoder passwordEncoder) {
+//        if(!appUserRepository.existsByUsername(username)) {
+//            AppUserEntity superAdmin = AppUserEntity.builder()
+//                    .firstName(firstName)
+//                    .lastName(lastName)
+//                    .username(username)
+//                    .email(email)
+//                    .createdAt(Timestamp.valueOf(LocalDateTime.now()))
+//                    .updatedAt(Timestamp.valueOf(LocalDateTime.now()))
+//                    .password(passwordEncoder.encode(password))
+//                    .build();
+//
+//            superAdmin.addUserRole(UserRole.Role.ADMIN, roleRepository);
+//            superAdmin.addUserRole(UserRole.Role.SUPER_ADMIN, roleRepository);
+//            superAdmin.addUserRole(UserRole.Role.USER, roleRepository);
+//
+//            final AppUserEntity savedSuperAdmin = appUserRepository.save(superAdmin);
+//            log.info("SUPER_ADMIN {} has been saved to database", savedSuperAdmin.getUsername());
+//        } else {
+//            log.info("SUPER_ADMIN {} already exists", username);
+//        }
+//    }
 }
