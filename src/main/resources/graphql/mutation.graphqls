@@ -1,8 +1,10 @@
 """
 Available mutations in Two Shop api.
-Observe that all mutations except for addUser need an Authorization header with 'Bearer token' to be able to call them.
+Observe that all mutations except for login and addUser need an Authorization header with 'Bearer token' to be able to call them.
 """
 type Mutation {
+    "Authenticates user and returns a JWT. Use this as an Authorization-header to make further requests"
+    login(username: String!, password: String!) : AuthenticationPayload!
     "Creates a new user with basic user privileges, such as creating shopping lists and collaborating on list by invite."
     addUser(appUserInput: AppUserInput!) : AppUser!
     "Updates the active user's account information"

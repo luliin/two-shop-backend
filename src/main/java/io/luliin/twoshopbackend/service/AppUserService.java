@@ -1,6 +1,7 @@
 package io.luliin.twoshopbackend.service;
 
 import io.luliin.twoshopbackend.dto.AppUser;
+import io.luliin.twoshopbackend.dto.AuthenticationPayload;
 import io.luliin.twoshopbackend.dto.ModifiedAppUser;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.UserRole;
@@ -12,6 +13,7 @@ import io.luliin.twoshopbackend.input.UpdateUserInput;
 import io.luliin.twoshopbackend.messaging.RabbitSender;
 import io.luliin.twoshopbackend.repository.AppUserRepository;
 import io.luliin.twoshopbackend.repository.UserRoleRepository;
+import io.luliin.twoshopbackend.security.AuthMutation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter;
@@ -43,6 +45,7 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
     private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
     private final RabbitSender rabbitSender;
+    private final AuthMutation authMutation;
 
     @PreAuthorize("hasRole('ROLE_ADMIN') || hasRole('ROLE_SUPER_ADMIN')")
     public List<AppUser> allUsers() {
@@ -191,4 +194,8 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
     }
 
 
+    @PreAuthorize("isAnonymous()")
+    public AuthenticationPayload attemptLogin(String username, String password) {
+        return authMutation.attemptAuthenticationMutation(username, password);
+    }
 }

@@ -2,6 +2,7 @@ package io.luliin.twoshopbackend.controller;
 
 import graphql.schema.DataFetchingEnvironment;
 import io.luliin.twoshopbackend.dto.AppUser;
+import io.luliin.twoshopbackend.dto.AuthenticationPayload;
 import io.luliin.twoshopbackend.dto.ModifiedAppUser;
 import io.luliin.twoshopbackend.input.AdminUpdateUserInput;
 import io.luliin.twoshopbackend.input.AppUserInput;
@@ -66,6 +67,11 @@ public class AppUserController {
     @MutationMapping
     public ModifiedAppUser adminUpdateUserInformation(@Argument AdminUpdateUserInput adminUpdateUserInput) {
         return appUserService.adminUpdateUser(adminUpdateUserInput);
+    }
+
+    @MutationMapping
+    public AuthenticationPayload login(@Argument String username, @Argument String password) {
+        return appUserService.attemptLogin(username, password);
     }
 
 
