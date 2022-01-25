@@ -38,6 +38,7 @@ import java.util.List;
 
 
 /**
+ * Service class for handling shopping list related queries, mutations and subscriptions.
  * @author Julia Wigenstedt
  * Date: 2022-01-03
  */

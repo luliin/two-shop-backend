@@ -7,12 +7,15 @@ import org.springframework.graphql.web.WebInterceptorChain;
 import org.springframework.graphql.web.WebOutput;
 import org.springframework.graphql.web.WebSocketInterceptor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.lang.NonNull;
 import reactor.core.publisher.Mono;
 
 import java.util.Collections;
 import java.util.Map;
 
 /**
+ * CustomWebSocketInterceptor is an implementation of WebSocketInterceptor,
+ * which is a part of the WebInterceptorChain.
  * @author Julia Wigenstedt
  * Date: 2022-01-14
  */
@@ -20,16 +23,13 @@ import java.util.Map;
 public class CustomWebSocketInterceptor implements WebSocketInterceptor {
 
     @Override
-    public Mono<WebOutput> intercept(WebInput webInput, WebInterceptorChain chain) {
-        log.info("Webinput headers: {}", webInput.getHeaders());
-        log.info("Webinput variables: {}", webInput.getVariables());
+    public Mono<WebOutput> intercept(@NonNull WebInput webInput, WebInterceptorChain chain) {
         final Mono<WebOutput> next = chain.next(webInput);
 
         return next.map(webOutput -> {
             Object data = webOutput.getData();
             HttpHeaders responseHeaders = webOutput.getResponseHeaders();
             log.info("Data {}", data);
-            log.info("Headers {}", responseHeaders);
             return webOutput.transform(builder -> builder.data(data));
         }).log();
     }
@@ -38,7 +38,6 @@ public class CustomWebSocketInterceptor implements WebSocketInterceptor {
     public Mono<Object> handleConnectionInitialization(Map<String, Object> payload) {
 
         log.info("Payload: {}", payload);
-
         return Mono.just(Collections.singletonMap("JWT", "name"));
 
     }

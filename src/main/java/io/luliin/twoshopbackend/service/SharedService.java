@@ -11,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 /**
+ * Service class for handling methods shared by multiple services.
  * @author Julia Wigenstedt
  * Date: 2022-01-16
  */

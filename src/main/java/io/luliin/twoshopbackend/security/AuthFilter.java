@@ -24,6 +24,8 @@ import java.util.Collection;
 
 
 /**
+ * AuthFilter is a filter in the Security chain and is used when a user authenticates
+ * through "/login" resource.
  * @author Julia Wigenstedt
  * Date: 2022-01-13
  */

@@ -19,6 +19,8 @@ import java.util.Collection;
 import java.util.stream.Collectors;
 
 /**
+ * JWTAuthorizationFilter is implemented in the security filter chain,
+ * and is used to validate requests made to the api.
  * @author Julia Wigenstedt
  * Date: 2022-01-13
  */
