@@ -8,6 +8,8 @@ import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter;
 
 /**
+ * This exception handler catches some custom validation exceptions and turns them into ValidationErrors,
+ * instead of throwing InternalError.
  * @author Julia Wigenstedt
  * Date: 2022-01-22
  */

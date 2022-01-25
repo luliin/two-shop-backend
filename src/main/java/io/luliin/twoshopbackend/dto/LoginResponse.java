@@ -8,6 +8,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
+ * This is the DTO returned when a user calls the "/login" REST-endpoint
+ * LoginResponse is the POJO equivalent of the GraphQL type LoginResponse.
+ * @param username The authenticated user's username.
+ * @param roles The authenticated user's roles.
+ * @param jwtToken The generated JWT to use in subsequent API calls.
  * @author Julia Wigenstedt
  * Date: 2022-01-13
  */
@@ -19,8 +24,8 @@ public record LoginResponse(@JsonProperty("username") String username,
     /**
      * A list with the DTO for role
      *
-     * @param roles a collection with roles
-     * @return list of roleDTO
+     * @param roles a collection with authenticated users GrantedAuthority
+     * @return list of roles mapped to dto object
      */
     public static List<RoleResponse> convertSimpleGrantedAuthority(Collection<GrantedAuthority> roles) {
         return roles.stream()
