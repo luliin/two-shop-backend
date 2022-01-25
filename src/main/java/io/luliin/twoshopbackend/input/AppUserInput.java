@@ -10,7 +10,11 @@ import javax.validation.constraints.NotBlank;
  * AppUserInput is the Java representation of the GraphQL input type AppUserInput,
  * which is the expected input when persisting a new {@link AppUserEntity} to the database.
  * Basic validation on the fields are provided, along with corresponding error messages in swedish.
- *
+ * @param firstName The first name of new user.
+ * @param lastName The last name of new user.
+ * @param username The username of new user.
+ * @param email The email of new user.
+ * @param password The password of new user (Encoded before saving).
  * @author Julia Wigenstedt
  * Date: 2022-01-03
  */
