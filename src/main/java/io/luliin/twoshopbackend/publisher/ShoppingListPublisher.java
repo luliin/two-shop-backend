@@ -14,6 +14,7 @@ import reactor.core.publisher.Sinks;
 import javax.annotation.PostConstruct;
 
 /**
+ * This publisher provides subscribers with the requested data when there is an update.
  * @author Julia Wigenstedt
  * Date: 2022-01-07
  */

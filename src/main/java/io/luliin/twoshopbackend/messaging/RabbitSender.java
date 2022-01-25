@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 /**
@@ -53,24 +54,37 @@ public class RabbitSender {
         log.info(" [x] Published subscription info on deleted shopping list with id {}", deletedListResponse.shoppingListId());
     }
 
-
-    public void publishWelcomeMailMessage(AppUser appUser) {
-        UserPayload userPayload = new UserPayload(appUser.getUsername(),
-                appUser.getEmail(),
-                appUser.getFirstName(),
-                appUser.getLastName(),
-                null);
-
-
+    /**
+     * Publishes a user payload to the message broker that will be consumed by the mail service,
+     * which will send the corresponding email to the app user.
+     * @param userPayload The user information to populate dynamic email template with.
+     */
+    public void publishWelcomeMailMessage(UserPayload userPayload) {
         String routingKey = "welcome.message";
         rabbitTemplate.convertAndSend(mailTopic.getName(), routingKey, userPayload);
         log.info(" [x] Published a request to send welcome email to user with email: {}", userPayload.email());
     }
 
-
+    /**
+     * Publishes a user payload to the message broker that will be consumed by the mail service,
+     * which will send the corresponding email to the app user.
+     * @param appUser The user information to populate dynamic email template with.
+     */
     public void publishPasswordMailMessage(AppUser appUser) {
         String routingKey = "password.message";
         rabbitTemplate.convertAndSend(mailTopic.getName(), routingKey, appUser);
         log.info(" [x] Published a request to send reset password email to user with email: {}", appUser.getEmail());
+    }
+
+
+    /**
+     * Publishes a user payload to the message broker that will be consumed by the mail service,
+     * which will send the corresponding email to the app user.
+     * @param userPayload The user information to populate dynamic email template with.
+     */
+    public void publishCollaboratorInvitedMessage(UserPayload userPayload) {
+        String routingKey = "collaborator.message";
+        rabbitTemplate.convertAndSend(mailTopic.getName(), routingKey, userPayload);
+        log.info(" [x] Published a request to send collaborator invitation email to user with email: {}", userPayload.email());
     }
 }

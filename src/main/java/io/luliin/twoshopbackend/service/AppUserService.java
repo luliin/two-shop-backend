@@ -3,6 +3,7 @@ package io.luliin.twoshopbackend.service;
 import io.luliin.twoshopbackend.dto.AppUser;
 import io.luliin.twoshopbackend.dto.AuthenticationPayload;
 import io.luliin.twoshopbackend.dto.ModifiedAppUser;
+import io.luliin.twoshopbackend.dto.mail.UserPayload;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.UserRole;
 import io.luliin.twoshopbackend.exception.CustomValidationException;
@@ -80,7 +81,16 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
         newUser.addUserRole(UserRole.Role.USER, userRoleRepository);
 
         final AppUser appUser = appUserRepository.save(newUser).toAppUser();
-        rabbitSender.publishWelcomeMailMessage(appUser);
+
+        UserPayload userPayload = new UserPayload(appUser.getUsername(),
+                appUser.getEmail(),
+                appUser.getFirstName(),
+                appUser.getLastName(),
+                null,
+                null,
+                null);
+
+        rabbitSender.publishWelcomeMailMessage(userPayload);
 
         return appUser;
     }
