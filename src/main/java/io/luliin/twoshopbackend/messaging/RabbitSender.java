@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 /**
@@ -56,16 +57,9 @@ public class RabbitSender {
     /**
      * Publishes a user payload to the message broker that will be consumed by the mail service,
      * which will send the corresponding email to the app user.
-     * @param appUser The user information to populate dynamic email template with.
+     * @param userPayload The user information to populate dynamic email template with.
      */
-    public void publishWelcomeMailMessage(AppUser appUser) {
-        UserPayload userPayload = new UserPayload(appUser.getUsername(),
-                appUser.getEmail(),
-                appUser.getFirstName(),
-                appUser.getLastName(),
-                null);
-
-
+    public void publishWelcomeMailMessage(UserPayload userPayload) {
         String routingKey = "welcome.message";
         rabbitTemplate.convertAndSend(mailTopic.getName(), routingKey, userPayload);
         log.info(" [x] Published a request to send welcome email to user with email: {}", userPayload.email());
@@ -86,11 +80,11 @@ public class RabbitSender {
     /**
      * Publishes a user payload to the message broker that will be consumed by the mail service,
      * which will send the corresponding email to the app user.
-     * @param appUser The user information to populate dynamic email template with.
+     * @param userPayload The user information to populate dynamic email template with.
      */
-    public void publishCollaboratorInvitedMessage(AppUser appUser) {
+    public void publishCollaboratorInvitedMessage(UserPayload userPayload) {
         String routingKey = "collaborator.message";
-        rabbitTemplate.convertAndSend(mailTopic.getName(), routingKey, appUser);
-        log.info(" [x] Published a request to send collaborator invitation email to user with email: {}", appUser.getEmail());
+        rabbitTemplate.convertAndSend(mailTopic.getName(), routingKey, userPayload);
+        log.info(" [x] Published a request to send collaborator invitation email to user with email: {}", userPayload.email());
     }
 }

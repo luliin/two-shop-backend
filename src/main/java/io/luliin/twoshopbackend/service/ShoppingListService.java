@@ -4,6 +4,7 @@ import graphql.schema.DataFetchingEnvironment;
 import io.luliin.twoshopbackend.dto.AppUser;
 import io.luliin.twoshopbackend.dto.DeletedListResponse;
 import io.luliin.twoshopbackend.dto.ModifiedShoppingList;
+import io.luliin.twoshopbackend.dto.mail.UserPayload;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.Item;
 import io.luliin.twoshopbackend.entity.ShoppingList;
@@ -223,6 +224,16 @@ public class ShoppingListService {
         }
 
         ShoppingList savedList = shoppingListRepository.save(shoppingList.setCollaborator(collaborator));
+
+        rabbitSender.publishCollaboratorInvitedMessage(
+                new UserPayload(collaborator.getUsername(),
+                collaborator.getEmail(),
+                        collaborator.getFirstName(),
+                        collaborator.getLastName(),
+                        null,
+                        owner.getUsername(),
+                        savedList.getName()
+                ));
 
         return savedList.toModifiedShoppingList(collaborator.getUsername() + " has been added as a collaborator");
     }
