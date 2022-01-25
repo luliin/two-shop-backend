@@ -1,6 +1,7 @@
 package io.luliin.twoshopbackend.service;
 
 import io.luliin.twoshopbackend.dto.AppUser;
+import io.luliin.twoshopbackend.dto.AuthenticationPayload;
 import io.luliin.twoshopbackend.dto.ModifiedAppUser;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.UserRole;
@@ -12,6 +13,7 @@ import io.luliin.twoshopbackend.input.UpdateUserInput;
 import io.luliin.twoshopbackend.messaging.RabbitSender;
 import io.luliin.twoshopbackend.repository.AppUserRepository;
 import io.luliin.twoshopbackend.repository.UserRoleRepository;
+import io.luliin.twoshopbackend.security.AuthMutation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter;
@@ -43,6 +45,12 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
     private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
     private final RabbitSender rabbitSender;
+    private final AuthMutation authMutation;
+
+    @PreAuthorize("isAnonymous()")
+    public AuthenticationPayload attemptLogin(String username, String password) {
+        return authMutation.attemptAuthenticationMutation(username, password);
+    }
 
     @PreAuthorize("hasRole('ROLE_ADMIN') || hasRole('ROLE_SUPER_ADMIN')")
     public List<AppUser> allUsers() {
@@ -72,7 +80,6 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
         newUser.addUserRole(UserRole.Role.USER, userRoleRepository);
 
         final AppUser appUser = appUserRepository.save(newUser).toAppUser();
-//        mailSender.sendWelcomeMessage(appUser);
         rabbitSender.publishWelcomeMailMessage(appUser);
 
         return appUser;
@@ -131,6 +138,12 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
 
     }
 
+    /**
+     * This method can be called by admin to update user information on any existing user,<br>
+     * providing a valid user id is provided in the input.
+     * @param adminUpdateUserInput An input containing the fields to update.
+     * @return A {@link ModifiedAppUser} with updated user information and message.
+     */
     @Transactional
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
     public ModifiedAppUser adminUpdateUser(@Valid AdminUpdateUserInput adminUpdateUserInput) {
@@ -169,9 +182,15 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
 
         final AppUser appUser = appUserRepository.save(userToUpdate).toAppUser();
         return appUser.toModifiedAppUser(appUser.getUsername() + " has been updated successfully!");
-
-
     }
+
+    /**
+     * Spring Validation annotations are not available between service layer methods.
+     * This method provides the possibility to validate an email from a service method, <br>
+     * for example if the provided email is an Optional field.
+     * @param email The email to validate
+     * @return The provided email if it is valid
+     */
     public String validatedEmail(String email) {
         String regex = "^[\\w!#$%&'*+/=?`{|}~^-åäö]+(?:\\.[\\w!#$%&'*+/=?`{|}~^-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,6}$";
         Pattern pattern = Pattern.compile(regex);
@@ -179,16 +198,29 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
         return email;
     }
 
+    /**
+     * Spring Validation annotations are not available between service layer methods.
+     * This method provides the possibility to validate a name from a service method, <br>
+     * for example if the provided name is an Optional field.
+     * @param name The name to validate
+     * @param typeName The type of name, e.g. Förnamn, Efternamn, Användarnamn. Used in error message.
+     * @return The provided name if it is valid
+     */
     public String validatedName(String name, String typeName) {
         if(name == null || name.trim().length()==0) throw new CustomValidationException(typeName + "et får inte vara blankt");
         return name;
     }
 
+    /**
+     * Spring Validation annotations are not available between service layer methods.
+     * This method provides the possibility to validate a password from a service method, <br>
+     * for example if the provided password is an Optional field.
+     * @param password The password to validate
+     * @return The provided password if it is valid
+     */
     public String validatedPassword(String password) {
         if(password == null || password.trim().length()==0) throw new CustomValidationException("Lösenordet får inte vara blankt");
         if(password.length()<6 || password.length()>255) throw new CustomValidationException("Lösenordet måste innehålla mellan 6 och 255 tecken");
         return password;
     }
-
-
 }
