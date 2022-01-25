@@ -1,0 +1,12 @@
+io.luliin.twoshopbackend
+io.luliin.twoshopbackend.controller
+io.luliin.twoshopbackend.dto
+io.luliin.twoshopbackend.dto.mail
+io.luliin.twoshopbackend.entity
+io.luliin.twoshopbackend.exception
+io.luliin.twoshopbackend.input
+io.luliin.twoshopbackend.messaging
+io.luliin.twoshopbackend.publisher
+io.luliin.twoshopbackend.repository
+io.luliin.twoshopbackend.security
+io.luliin.twoshopbackend.service
