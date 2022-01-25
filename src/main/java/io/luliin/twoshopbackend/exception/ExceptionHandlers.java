@@ -1,15 +1,11 @@
 package io.luliin.twoshopbackend.exception;
 
 import graphql.ErrorType;
-import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
-import graphql.schema.DataFetchingEnvironment;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.graphql.execution.DataFetcherExceptionResolver;
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter;
-
-import java.util.List;
 
 /**
  * @author Julia Wigenstedt
@@ -18,7 +14,6 @@ import java.util.List;
 
 @Configuration
 public class ExceptionHandlers extends DataFetcherExceptionResolverAdapter {
-
 
     @Bean
     public DataFetcherExceptionResolver resolveException() {

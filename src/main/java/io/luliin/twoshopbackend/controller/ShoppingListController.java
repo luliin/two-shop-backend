@@ -4,7 +4,6 @@ import graphql.schema.DataFetchingEnvironment;
 import io.luliin.twoshopbackend.dto.AppUser;
 import io.luliin.twoshopbackend.dto.DeletedListResponse;
 import io.luliin.twoshopbackend.dto.ModifiedShoppingList;
-import io.luliin.twoshopbackend.entity.Item;
 import io.luliin.twoshopbackend.entity.ShoppingList;
 import io.luliin.twoshopbackend.input.CreateShoppingListInput;
 import io.luliin.twoshopbackend.input.HandleCollaboratorInput;

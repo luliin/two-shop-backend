@@ -43,6 +43,11 @@ public class AppUserController {
         return appUserService.userById(userId);
     }
 
+    @QueryMapping
+    public List<AppUser> usersByEmailOrUsernameContaining(@Argument String userCredential) {
+        return appUserService.getUsersFromUserCredentialContaining(userCredential);
+    }
+
     @MutationMapping
     public AppUser addUser(@Argument @Valid AppUserInput appUserInput) {
         return appUserService.addUser(appUserInput);

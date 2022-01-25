@@ -1,6 +1,5 @@
 package io.luliin.twoshopbackend.service;
 
-import graphql.GraphqlErrorBuilder;
 import graphql.schema.DataFetchingEnvironment;
 import io.luliin.twoshopbackend.dto.AppUser;
 import io.luliin.twoshopbackend.dto.ModifiedAppUser;
@@ -15,24 +14,18 @@ import io.luliin.twoshopbackend.repository.AppUserRepository;
 import io.luliin.twoshopbackend.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.validator.constraints.Length;
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.Valid;
-import javax.validation.ValidationException;
-import javax.validation.constraints.Email;
-import javax.validation.constraints.NotBlank;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -86,6 +79,13 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
                 .orElseThrow(() -> new IllegalArgumentException("No such user"));
 
         return user.toAppUser();
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    public List<AppUser> getUsersFromUserCredentialContaining(String userCredential) {
+        return appUserRepository.findByUsernameContainingOrEmail(userCredential, userCredential).stream()
+                .map(AppUserEntity::toAppUser)
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -184,4 +184,6 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
         if(password.length()<6 || password.length()>255) throw new CustomValidationException("Lösenordet måste innehålla mellan 6 och 255 tecken");
         return password;
     }
+
+
 }

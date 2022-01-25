@@ -2,9 +2,7 @@ package io.luliin.twoshopbackend.dto;
 
 
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 
 import java.sql.Timestamp;
@@ -20,6 +18,8 @@ import java.sql.Timestamp;
 @Builder
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class AppUser {
 
     private Long id;
