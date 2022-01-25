@@ -2,8 +2,7 @@ package io.luliin.twoshopbackend.input;
 
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.ShoppingList;
-
-import javax.validation.constraints.Email;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 /**
@@ -18,6 +17,6 @@ import javax.validation.constraints.NotNull;
 public record HandleCollaboratorInput(
         @NotNull(message = "Du måste ange vilken shoppinglista som ska få en collaborator!")
         Long shoppingListId,
-        @Email(message = "Du måste ange en giltig e-post eller användarnamn till collaboratorn!")
+        @NotBlank(message = "Du måste ange en giltig e-post eller användarnamn till collaboratorn!")
         String collaboratorCredential) {
 }
