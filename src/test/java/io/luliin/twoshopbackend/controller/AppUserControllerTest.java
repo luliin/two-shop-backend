@@ -3,6 +3,7 @@ package io.luliin.twoshopbackend.controller;
 
 import io.luliin.twoshopbackend.AbstractContainerBaseTest;
 import io.luliin.twoshopbackend.dto.AppUser;
+import io.luliin.twoshopbackend.dto.AuthenticationPayload;
 import io.luliin.twoshopbackend.dto.ModifiedAppUser;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.UserRole;
@@ -560,6 +561,34 @@ class AppUserControllerTest extends AbstractContainerBaseTest {
                 .path("usersByEmailOrUsernameContaining")
                 .entityList(AppUser.class)
                 .satisfies(users -> assertThat(users).size().isEqualTo(2));
+    }
+
+
+    @Test
+    @Order(2)
+    void loginTest() {
+        var expectedTokenStart  = "Bearer ";
+        var expectedUsername = "testaren";
+
+        var loginMutation = """
+                mutation {
+                  login(username:"%s", password: "password") {
+                    jwt
+                    appUser {
+                        username
+                    }
+                  }
+                }
+                """.formatted(expectedUsername);
+
+        this.graphQlTester.query(loginMutation)
+                .execute()
+                .path("login")
+                .entity(AuthenticationPayload.class)
+                .satisfies(payload -> {
+                    assertThat(payload.jwt()).startsWith(expectedTokenStart);
+                    assertThat(payload.appUser().getUsername()).isEqualTo(expectedUsername);
+                });
     }
 
     @Override
