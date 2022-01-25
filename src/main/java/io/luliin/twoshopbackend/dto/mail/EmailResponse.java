@@ -1,4 +1,4 @@
-package io.luliin.twoshopbackend.mail;
+package io.luliin.twoshopbackend.dto.mail;
 
 /**
  * This is a DTO received from mail service through message broker when an email has been sent.

@@ -1,6 +1,6 @@
 package io.luliin.twoshopbackend.messaging;
 
-import io.luliin.twoshopbackend.mail.EmailResponse;
+import io.luliin.twoshopbackend.dto.mail.EmailResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
