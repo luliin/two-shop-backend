@@ -101,4 +101,5 @@ type ModifiedAppUser {
 
 type AuthenticationPayload {
     jwt: String!
+    appUser: AppUser!
 }
