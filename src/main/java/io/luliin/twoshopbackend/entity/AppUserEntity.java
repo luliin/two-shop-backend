@@ -62,6 +62,11 @@ public class AppUserEntity implements UserDetails {
     List<UserRole> roles = new ArrayList<>();
 
 
+    /**
+     * Maps a user entity to an AppUser DTO.
+     *
+     * @return The current user entity as an AppUser.
+     */
     public AppUser toAppUser() {
         return AppUser.builder()
                 .id(this.id)
@@ -74,6 +79,13 @@ public class AppUserEntity implements UserDetails {
                 .build();
     }
 
+    /**
+     * Adds a new User role to current user's list of roles.
+     * Will only add a role if it's not already in list.
+     *
+     * @param role           The role to add to roles list.
+     * @param roleRepository The role repository to find role from.
+     */
     public void addUserRole(UserRole.Role role, UserRoleRepository roleRepository) {
         UserRole currentRole = roleRepository.findByRole(role)
                 .orElseThrow(() -> new IllegalArgumentException("Illegal role"));
@@ -86,6 +98,12 @@ public class AppUserEntity implements UserDetails {
         }
     }
 
+    /**
+     * Removes an existing User role from current user's list of roles.
+     * Will throw error if the role provided is User role (since it is mandatory).
+     * @param role The role to add to roles list.
+     * @param roleRepository The role repository to find role from.
+     */
     public void removeUserRole(UserRole.Role role, UserRoleRepository roleRepository) {
         UserRole currentRole = roleRepository.findByRole(role)
                 .orElseThrow(() -> new IllegalArgumentException("Illegal role"));
@@ -95,6 +113,11 @@ public class AppUserEntity implements UserDetails {
         roles.remove(currentRole);
     }
 
+    /**
+     * Maps the current user's role list to a collection of Simple Granted Authorities,<br>
+     * to use in JWT and service methods authorization.
+     * @return A collection of the users Granted authorities
+     */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         if (this.roles == null) {
