@@ -1,7 +1,9 @@
 package io.luliin.twoshopbackend.messaging;
 
+import io.luliin.twoshopbackend.dto.AppUser;
 import io.luliin.twoshopbackend.dto.DeletedListResponse;
-import io.luliin.twoshopbackend.entity.*;
+import io.luliin.twoshopbackend.dto.mail.UserPayload;
+import io.luliin.twoshopbackend.entity.ShoppingList;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.TopicExchange;
@@ -25,6 +27,7 @@ public class RabbitSender {
 
     private final RabbitTemplate rabbitTemplate;
     private final TopicExchange topic;
+    private final TopicExchange mailTopic;
 
     /**
      * Publishes a shopping list's id to the message broker,
@@ -48,5 +51,26 @@ public class RabbitSender {
         String routingKey = "deleted.message";
         rabbitTemplate.convertAndSend(topic.getName(), routingKey, deletedListResponse);
         log.info(" [x] Published subscription info on deleted shopping list with id {}", deletedListResponse.shoppingListId());
+    }
+
+
+    public void publishWelcomeMailMessage(AppUser appUser) {
+        UserPayload userPayload = new UserPayload(appUser.getUsername(),
+                appUser.getEmail(),
+                appUser.getFirstName(),
+                appUser.getLastName(),
+                null);
+
+
+        String routingKey = "welcome.message";
+        rabbitTemplate.convertAndSend(mailTopic.getName(), routingKey, userPayload);
+        log.info(" [x] Published a request to send welcome email to user with email: {}", userPayload.email());
+    }
+
+
+    public void publishPasswordMailMessage(AppUser appUser) {
+        String routingKey = "password.message";
+        rabbitTemplate.convertAndSend(mailTopic.getName(), routingKey, appUser);
+        log.info(" [x] Published a request to send reset password email to user with email: {}", appUser.getEmail());
     }
 }

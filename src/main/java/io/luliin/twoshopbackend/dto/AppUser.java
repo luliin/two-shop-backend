@@ -1,9 +1,8 @@
 package io.luliin.twoshopbackend.dto;
 
 
-
-import lombok.*;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
+import lombok.*;
 
 import java.sql.Timestamp;
 

@@ -1,10 +1,10 @@
 package io.luliin.twoshopbackend.input;
 
+import io.luliin.twoshopbackend.entity.AppUserEntity;
 import org.hibernate.validator.constraints.Length;
 
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
-import io.luliin.twoshopbackend.entity.*;
 
 /**
  * AppUserInput is the Java representation of the GraphQL input type AppUserInput,

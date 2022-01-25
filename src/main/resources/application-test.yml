@@ -34,5 +34,5 @@ security:
   signingKey: ${SECURITY_SIGNING_KEY}
   algorithm: "HS512"
   validMinutes: 4320
-
-
+  sendgrid-key: ${SENDGRID_BASIC}
+  welcomeURL: "https://twoshop-mail.herokuapp.com/mail/welcome"

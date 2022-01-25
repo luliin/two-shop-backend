@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.GrantedAuthority;
+
 import java.security.Key;
 import java.time.Duration;
 import java.time.Instant;

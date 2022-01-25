@@ -1,6 +1,5 @@
 package io.luliin.twoshopbackend.service;
 
-import graphql.schema.DataFetchingEnvironment;
 import io.luliin.twoshopbackend.dto.AppUser;
 import io.luliin.twoshopbackend.dto.ModifiedAppUser;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
@@ -10,6 +9,7 @@ import io.luliin.twoshopbackend.exception.InvalidEmailException;
 import io.luliin.twoshopbackend.input.AdminUpdateUserInput;
 import io.luliin.twoshopbackend.input.AppUserInput;
 import io.luliin.twoshopbackend.input.UpdateUserInput;
+import io.luliin.twoshopbackend.messaging.RabbitSender;
 import io.luliin.twoshopbackend.repository.AppUserRepository;
 import io.luliin.twoshopbackend.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +42,7 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
     private final AppUserRepository appUserRepository;
     private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RabbitSender rabbitSender;
 
     @PreAuthorize("hasRole('ROLE_ADMIN') || hasRole('ROLE_SUPER_ADMIN')")
     public List<AppUser> allUsers() {
@@ -70,7 +71,11 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
 
         newUser.addUserRole(UserRole.Role.USER, userRoleRepository);
 
-        return appUserRepository.save(newUser).toAppUser();
+        final AppUser appUser = appUserRepository.save(newUser).toAppUser();
+//        mailSender.sendWelcomeMessage(appUser);
+        rabbitSender.publishWelcomeMailMessage(appUser);
+
+        return appUser;
     }
 
     @PreAuthorize("isAuthenticated()")
@@ -90,7 +95,7 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
 
     @Transactional
     @PreAuthorize("isAuthenticated()")
-    public ModifiedAppUser updateUser(UpdateUserInput updateUserInput, String username, DataFetchingEnvironment environment) {
+    public ModifiedAppUser updateUser(UpdateUserInput updateUserInput, String username) {
         AppUserEntity currentUser = appUserRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Could not fetch current user's information."));
 
@@ -99,7 +104,7 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
             throw new CustomValidationException("Du har inte angett någon ny information.");
         }
 
-        updateUserInput.updatedEmail().ifPresentOrElse(email -> currentUser.setEmail(validatedEmail(email, environment)),
+        updateUserInput.updatedEmail().ifPresentOrElse(email -> currentUser.setEmail(validatedEmail(email)),
                 () -> log.info("No email provided"));
         updateUserInput.updatedFirstName().ifPresentOrElse(firstName -> currentUser.setFirstName(validatedName(firstName, "Förnamn")),
                 () -> log.info("No first name provided"));
@@ -128,7 +133,7 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
 
     @Transactional
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
-    public ModifiedAppUser adminUpdateUser(@Valid AdminUpdateUserInput adminUpdateUserInput, DataFetchingEnvironment environment) {
+    public ModifiedAppUser adminUpdateUser(@Valid AdminUpdateUserInput adminUpdateUserInput) {
         AppUserEntity userToUpdate = appUserRepository.findById(adminUpdateUserInput.userId())
                 .orElseThrow(() -> new IllegalArgumentException("No such user"));
         if(adminUpdateUserInput.allFields().stream()
@@ -136,7 +141,7 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
             throw new CustomValidationException("No fields to update have been provided");
         }
 
-        adminUpdateUserInput.newEmail().ifPresentOrElse(email -> userToUpdate.setEmail(validatedEmail(email, environment)),
+        adminUpdateUserInput.newEmail().ifPresentOrElse(email -> userToUpdate.setEmail(validatedEmail(email)),
                 () -> log.info("No email provided"));
         adminUpdateUserInput.newFirstName().ifPresentOrElse(firstName -> userToUpdate.setFirstName(validatedName(firstName, "Förnamn")),
                 () -> log.info("No first name provided"));
@@ -167,7 +172,7 @@ public class AppUserService extends DataFetcherExceptionResolverAdapter {
 
 
     }
-    public String validatedEmail(String email, DataFetchingEnvironment environment) {
+    public String validatedEmail(String email) {
         String regex = "^[\\w!#$%&'*+/=?`{|}~^-åäö]+(?:\\.[\\w!#$%&'*+/=?`{|}~^-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,6}$";
         Pattern pattern = Pattern.compile(regex);
         if(!pattern.matcher(email).matches()) throw new InvalidEmailException("Ogiltig e-post");

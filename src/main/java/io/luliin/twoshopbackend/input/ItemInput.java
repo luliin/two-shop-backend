@@ -4,7 +4,6 @@ import io.luliin.twoshopbackend.entity.Item;
 import org.hibernate.validator.constraints.Length;
 
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 
 /**
  * ItemInput is the Java representation of GraphQL input type ItemInput,
