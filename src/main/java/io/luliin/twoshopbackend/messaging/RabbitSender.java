@@ -53,7 +53,11 @@ public class RabbitSender {
         log.info(" [x] Published subscription info on deleted shopping list with id {}", deletedListResponse.shoppingListId());
     }
 
-
+    /**
+     * Publishes a user payload to the message broker that will be consumed by the mail service,
+     * which will send the corresponding email to the app user.
+     * @param appUser The user information to populate dynamic email template with.
+     */
     public void publishWelcomeMailMessage(AppUser appUser) {
         UserPayload userPayload = new UserPayload(appUser.getUsername(),
                 appUser.getEmail(),
@@ -67,10 +71,26 @@ public class RabbitSender {
         log.info(" [x] Published a request to send welcome email to user with email: {}", userPayload.email());
     }
 
-
+    /**
+     * Publishes a user payload to the message broker that will be consumed by the mail service,
+     * which will send the corresponding email to the app user.
+     * @param appUser The user information to populate dynamic email template with.
+     */
     public void publishPasswordMailMessage(AppUser appUser) {
         String routingKey = "password.message";
         rabbitTemplate.convertAndSend(mailTopic.getName(), routingKey, appUser);
         log.info(" [x] Published a request to send reset password email to user with email: {}", appUser.getEmail());
+    }
+
+
+    /**
+     * Publishes a user payload to the message broker that will be consumed by the mail service,
+     * which will send the corresponding email to the app user.
+     * @param appUser The user information to populate dynamic email template with.
+     */
+    public void publishCollaboratorInvitedMessage(AppUser appUser) {
+        String routingKey = "collaborator.message";
+        rabbitTemplate.convertAndSend(mailTopic.getName(), routingKey, appUser);
+        log.info(" [x] Published a request to send collaborator invitation email to user with email: {}", appUser.getEmail());
     }
 }

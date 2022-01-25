@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
+ * Contains all configuration for the RabbitMQ implementation.
  * @author Julia Wigenstedt
  * Date: 2022-01-12
  */
