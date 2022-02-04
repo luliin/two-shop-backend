@@ -22,7 +22,9 @@ spring:
       path: "/subscription"
       connection-init-timeout:
     cors:
-      allowed-origins: "http://localhost:3000/", "https://twoshop.netlify.app/login"
+      allowed-origins:
+        - "http://localhost:3000/"
+        - "https://twoshop.netlify.app/login"
   rabbitmq:
     host: ${RABBIT_HOST}
     port: 5672
