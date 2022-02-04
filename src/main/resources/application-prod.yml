@@ -24,7 +24,7 @@ spring:
     cors:
       allowed-origins:
         - "http://localhost:3000/"
-        - "https://twoshop.netlify.app/login"
+        - "https://twoshop.netlify.app/"
   rabbitmq:
     host: ${RABBIT_HOST}
     port: 5672
