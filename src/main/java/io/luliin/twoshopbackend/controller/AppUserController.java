@@ -1,7 +1,12 @@
 package io.luliin.twoshopbackend.controller;
 
+import graphql.schema.DataFetchingEnvironment;
 import io.luliin.twoshopbackend.dto.AppUser;
+import io.luliin.twoshopbackend.dto.AuthenticationPayload;
+import io.luliin.twoshopbackend.dto.ModifiedAppUser;
+import io.luliin.twoshopbackend.input.AdminUpdateUserInput;
 import io.luliin.twoshopbackend.input.AppUserInput;
+import io.luliin.twoshopbackend.input.UpdateUserInput;
 import io.luliin.twoshopbackend.service.AppUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.graphql.data.method.annotation.Argument;
@@ -10,6 +15,7 @@ import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
 
 import javax.validation.Valid;
+import java.security.Principal;
 import java.util.List;
 
 /**
@@ -38,11 +44,35 @@ public class AppUserController {
         return appUserService.userById(userId);
     }
 
+    @QueryMapping
+    public List<AppUser> usersByEmailOrUsernameContaining(@Argument String userCredential) {
+        return appUserService.getUsersFromUserCredentialContaining(userCredential);
+    }
+
     @MutationMapping
     public AppUser addUser(@Argument @Valid AppUserInput appUserInput) {
         return appUserService.addUser(appUserInput);
     }
 
+    @MutationMapping
+    public ModifiedAppUser updateUser(@Argument UpdateUserInput updateUserInput, Principal principal) {
+        return appUserService.updateUser(updateUserInput, principal.getName());
+    }
+
+    @MutationMapping
+    public ModifiedAppUser updatePassword(@Argument String oldPassword, @Argument String newPassword, Principal principal) {
+        return appUserService.updatePassword(oldPassword, newPassword, principal.getName());
+    }
+
+    @MutationMapping
+    public ModifiedAppUser adminUpdateUserInformation(@Argument AdminUpdateUserInput adminUpdateUserInput) {
+        return appUserService.adminUpdateUser(adminUpdateUserInput);
+    }
+
+    @MutationMapping
+    public AuthenticationPayload login(@Argument String username, @Argument String password) {
+        return appUserService.attemptLogin(username, password);
+    }
 
 
 }

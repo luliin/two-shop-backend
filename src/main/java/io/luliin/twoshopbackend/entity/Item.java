@@ -43,6 +43,9 @@ public class Item {
     private ShoppingList shoppingList;
 
 
+    /**
+     * Available units
+     */
     public enum Unit {
         ST,
         CL,

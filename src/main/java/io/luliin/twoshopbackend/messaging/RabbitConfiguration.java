@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
+ * Contains all configuration for the RabbitMQ implementation.
  * @author Julia Wigenstedt
  * Date: 2022-01-12
  */
@@ -19,6 +20,11 @@ public class RabbitConfiguration {
     @Bean
     public TopicExchange topic() {
         return new TopicExchange("topic");
+    }
+
+    @Bean
+    public TopicExchange mailTopic() {
+        return new TopicExchange("mail");
     }
 
     // Needs to be anonymous, otherwise two instances of this application will receive every other message.
@@ -31,6 +37,12 @@ public class RabbitConfiguration {
     public Queue queue2() {
         return new AnonymousQueue();
     }
+
+    @Bean
+    public Queue mailQueue() {
+        return new Queue("mail");
+    }
+
 
     @Bean
     public Binding forwardBinding(TopicExchange topic,
@@ -48,6 +60,12 @@ public class RabbitConfiguration {
                 .with("deleted.*");
     }
 
+    @Bean
+    public Binding mailBinding() {
+        return BindingBuilder.bind(mailQueue())
+                .to(mailTopic())
+                .with("confirm.*");
+    }
 
 
     @Bean

@@ -14,12 +14,10 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
 
 import javax.crypto.spec.SecretKeySpec;
 import java.time.Duration;
@@ -27,6 +25,7 @@ import java.time.Duration;
 
 
 /**
+ * SecurityConfiguration provides all configuration related to Spring Security and JWT.
  * @author Julia Wigenstedt
  * Date: 2022-01-13
  */

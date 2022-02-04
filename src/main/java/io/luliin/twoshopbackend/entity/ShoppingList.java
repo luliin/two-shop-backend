@@ -49,7 +49,7 @@ public class ShoppingList {
     private Timestamp updatedAt;
     @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL, mappedBy = "shoppingList", fetch = FetchType.EAGER)
     @Fetch(value = FetchMode.SELECT)
-    @OrderBy("id ASC")
+    @OrderBy("id DESC")
     @Builder.Default
     List<Item> items = new ArrayList<>();
 

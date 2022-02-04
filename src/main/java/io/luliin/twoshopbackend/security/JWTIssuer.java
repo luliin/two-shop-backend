@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.GrantedAuthority;
+
 import java.security.Key;
 import java.time.Duration;
 import java.time.Instant;
@@ -12,6 +13,7 @@ import java.util.Date;
 import java.util.stream.Collectors;
 
 /**
+ * JWTIssuer is a helper class whose purpose is to generate and validate JWT.
  * @author Julia Wigenstedt
  * Date: 2022-01-13
  */
@@ -25,6 +27,11 @@ public class JWTIssuer {
         this.validity = validity;
     }
 
+    /**
+     * Generates a JWT for the provided user entity.
+     * @param user The authenticated user to create a JWT for.
+     * @return The JWT as a String
+     */
     public String generateToken(final AppUserEntity user) {
 
         final String authorities = user.getAuthorities().stream()
@@ -40,8 +47,13 @@ public class JWTIssuer {
                 .compact();
     }
 
+
+    /**
+     * Takes a provided JWT and returns its claims.
+     * @param token The (JWT) token to validate.
+     * @return The user claims
+     */
     public Claims validate(String token) {
-        log.info(" >>> Validating JWT token");
 
         return Jwts.parserBuilder()
                 .setSigningKey(key).build()

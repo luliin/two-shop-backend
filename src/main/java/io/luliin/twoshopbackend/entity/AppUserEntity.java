@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.luliin.twoshopbackend.dto.AppUser;
 import io.luliin.twoshopbackend.repository.UserRoleRepository;
 import lombok.*;
+import lombok.experimental.Accessors;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,9 +24,11 @@ import java.util.stream.Collectors;
  */
 @Entity
 @Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Accessors(chain = true)
 @Table(name = "app_user")
 public class AppUserEntity implements UserDetails {
 
@@ -59,6 +62,11 @@ public class AppUserEntity implements UserDetails {
     List<UserRole> roles = new ArrayList<>();
 
 
+    /**
+     * Maps a user entity to an AppUser DTO.
+     *
+     * @return The current user entity as an AppUser.
+     */
     public AppUser toAppUser() {
         return AppUser.builder()
                 .id(this.id)
@@ -71,18 +79,45 @@ public class AppUserEntity implements UserDetails {
                 .build();
     }
 
+    /**
+     * Adds a new User role to current user's list of roles.
+     * Will only add a role if it's not already in list.
+     *
+     * @param role           The role to add to roles list.
+     * @param roleRepository The role repository to find role from.
+     */
     public void addUserRole(UserRole.Role role, UserRoleRepository roleRepository) {
         UserRole currentRole = roleRepository.findByRole(role)
                 .orElseThrow(() -> new IllegalArgumentException("Illegal role"));
 
-        if(roles == null) {
+        if (roles == null) {
             roles = new ArrayList<>();
         }
-        if(!roles.contains(currentRole)) {
+        if (!roles.contains(currentRole)) {
             roles.add(currentRole);
         }
     }
 
+    /**
+     * Removes an existing User role from current user's list of roles.
+     * Will throw error if the role provided is User role (since it is mandatory).
+     * @param role The role to add to roles list.
+     * @param roleRepository The role repository to find role from.
+     */
+    public void removeUserRole(UserRole.Role role, UserRoleRepository roleRepository) {
+        UserRole currentRole = roleRepository.findByRole(role)
+                .orElseThrow(() -> new IllegalArgumentException("Illegal role"));
+        if (currentRole.getRole().equals(UserRole.Role.USER)) {
+            throw new IllegalArgumentException("Can not delete user role");
+        }
+        roles.remove(currentRole);
+    }
+
+    /**
+     * Maps the current user's role list to a collection of Simple Granted Authorities,<br>
+     * to use in JWT and service methods authorization.
+     * @return A collection of the users Granted authorities
+     */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         if (this.roles == null) {

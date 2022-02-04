@@ -4,6 +4,7 @@ import graphql.schema.DataFetchingEnvironment;
 import io.luliin.twoshopbackend.dto.AppUser;
 import io.luliin.twoshopbackend.dto.DeletedListResponse;
 import io.luliin.twoshopbackend.dto.ModifiedShoppingList;
+import io.luliin.twoshopbackend.dto.mail.UserPayload;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.Item;
 import io.luliin.twoshopbackend.entity.ShoppingList;
@@ -12,25 +13,22 @@ import io.luliin.twoshopbackend.input.HandleCollaboratorInput;
 import io.luliin.twoshopbackend.input.ItemInput;
 import io.luliin.twoshopbackend.input.ShoppingListItemInput;
 import io.luliin.twoshopbackend.messaging.RabbitSender;
+import io.luliin.twoshopbackend.publisher.DeletedListResponsePublisher;
+import io.luliin.twoshopbackend.publisher.ShoppingListPublisher;
 import io.luliin.twoshopbackend.repository.AppUserRepository;
 import io.luliin.twoshopbackend.repository.ItemRepository;
 import io.luliin.twoshopbackend.repository.ShoppingListRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.validator.constraints.Length;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
 
-
-import javax.annotation.PostConstruct;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import java.sql.Timestamp;
@@ -40,6 +38,7 @@ import java.util.List;
 
 
 /**
+ * Service class for handling shopping list related queries, mutations and subscriptions.
  * @author Julia Wigenstedt
  * Date: 2022-01-03
  */
@@ -54,17 +53,13 @@ public class ShoppingListService {
     private final ItemRepository itemRepository;
     private final SharedService sharedService;
 
-    private Sinks.Many<ShoppingList> shoppingListSink;
-    private Sinks.Many<DeletedListResponse> deletedListSink;
     private final RabbitSender rabbitSender;
 
+    private final ShoppingListPublisher shoppingListPublisher;
+    private final DeletedListResponsePublisher deletedListResponsePublisher;
 
-    @PostConstruct
-    private void createShoppingListSubscriptions() {
-        shoppingListSink = Sinks.many().multicast().directBestEffort();
-        deletedListSink = Sinks.many().multicast().directBestEffort();
 
-    }
+
 
     @PreAuthorize("authentication.principal == #appUser.username or hasAnyRole({'ROLE_ADMIN', 'ROLE_SUPER_ADMIN'})")
     public List<ShoppingList> getOwnedShoppingLists(AppUser appUser) {
@@ -192,53 +187,13 @@ public class ShoppingListService {
         return updatedList;
     }
 
-
-    @RabbitListener(queues = "#{queue1.name}")
-    public void publishShoppingListItems(Long shoppingListId) {
-        ShoppingList shoppingList = shoppingListRepository
-                .findById(shoppingListId)
-                .orElse(null);
-        if (shoppingList != null) {
-            log.info(" >>> ShoppingListService : Shopping list {} updated", shoppingListId);
-            shoppingListSink.tryEmitNext(shoppingList);
-        } else {
-            log.info(" >>> There is no shopping list with id: {}", shoppingListId);
-        }
-
-    }
-
-    @RabbitListener(queues = "#{queue2.name}")
-    public void publishDeletedList(DeletedListResponse response) {
-        if (response != null) {
-            log.info(" >>> ShoppingListService : Publishing message {}", response.message());
-            deletedListSink.tryEmitNext(response);
-        } else {
-            log.error(" >>> An error occurred when publishing deleted list response");
-        }
-    }
-
-
     public Flux<ShoppingList> getShoppingListPublisher(Long shoppingListId, DataFetchingEnvironment environment) {
-        log.info("In getShoppingListPublisher {}", shoppingListId);
-        environment.getArguments().forEach((a, b) -> log.info("Arguments: {}={}", a, b));
-
-        return  shoppingListSink.asFlux()
-                .filter(shoppingList -> shoppingListId.equals(shoppingList.getId()))
-                .map(shoppingList -> {
-                    log.info("Publishing individual subscription update for Shopping list {}", shoppingList.getName());
-                    return shoppingList;
-                }).log();
+        return shoppingListPublisher.getShoppingListPublisher(shoppingListId, environment);
     }
 
 
     public Mono<DeletedListResponse> getDeletedListPublisher(Long shoppingListId) {
-        return Mono.from(deletedListSink.asFlux()
-                .filter(deletedList -> deletedList.shoppingListId().equals(shoppingListId))
-                .map(response -> {
-                    log.info("Publishing individual subscription for deleted shopping list: {}", shoppingListId);
-                    return response;
-                })
-                .next()).log();
+        return deletedListResponsePublisher.getDeletedListPublisher(shoppingListId);
     }
 
 
@@ -270,6 +225,16 @@ public class ShoppingListService {
         }
 
         ShoppingList savedList = shoppingListRepository.save(shoppingList.setCollaborator(collaborator));
+
+        rabbitSender.publishCollaboratorInvitedMessage(
+                new UserPayload(collaborator.getUsername(),
+                collaborator.getEmail(),
+                        collaborator.getFirstName(),
+                        collaborator.getLastName(),
+                        null,
+                        owner.getUsername(),
+                        savedList.getName()
+                ));
 
         return savedList.toModifiedShoppingList(collaborator.getUsername() + " has been added as a collaborator");
     }
@@ -332,7 +297,7 @@ public class ShoppingListService {
         shoppingListRepository.delete(shoppingList);
         DeletedListResponse deletedListResponse =
                 new DeletedListResponse(shoppingList.getOwner().getUsername() + " tog bort " + shoppingList.getName(),
-                "/home", shoppingListId);
+                "/lists", shoppingListId);
         rabbitSender.publishDeletedResponse(deletedListResponse);
         return deletedListResponse;
 

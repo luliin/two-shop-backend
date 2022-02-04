@@ -1,11 +1,8 @@
 package io.luliin.twoshopbackend.dto;
 
 
-
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
+import lombok.*;
 
 import java.sql.Timestamp;
 
@@ -20,6 +17,8 @@ import java.sql.Timestamp;
 @Builder
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class AppUser {
 
     private Long id;
@@ -29,4 +28,8 @@ public class AppUser {
     private String lastName;
     private Timestamp createdAt;
     private Timestamp updatedAt;
+
+    public ModifiedAppUser toModifiedAppUser(String message) {
+        return new ModifiedAppUser(this, message);
+    }
 }

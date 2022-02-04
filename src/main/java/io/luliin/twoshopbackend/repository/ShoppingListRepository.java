@@ -3,7 +3,6 @@ package io.luliin.twoshopbackend.repository;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.ShoppingList;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 import java.util.Optional;
