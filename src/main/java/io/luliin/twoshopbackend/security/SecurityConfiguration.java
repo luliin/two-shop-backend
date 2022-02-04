@@ -25,6 +25,7 @@ import java.time.Duration;
 
 
 /**
+ * SecurityConfiguration provides all configuration related to Spring Security and JWT.
  * @author Julia Wigenstedt
  * Date: 2022-01-13
  */

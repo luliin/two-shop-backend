@@ -33,6 +33,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
+ * Service class for handling user related queries and mutations.
  * @author Julia Wigenstedt
  * Date: 2022-01-03
  */

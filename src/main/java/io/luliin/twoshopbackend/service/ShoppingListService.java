@@ -38,6 +38,7 @@ import java.util.List;
 
 
 /**
+ * Service class for handling shopping list related queries, mutations and subscriptions.
  * @author Julia Wigenstedt
  * Date: 2022-01-03
  */
@@ -296,7 +297,7 @@ public class ShoppingListService {
         shoppingListRepository.delete(shoppingList);
         DeletedListResponse deletedListResponse =
                 new DeletedListResponse(shoppingList.getOwner().getUsername() + " tog bort " + shoppingList.getName(),
-                "/home", shoppingListId);
+                "/lists", shoppingListId);
         rabbitSender.publishDeletedResponse(deletedListResponse);
         return deletedListResponse;
 
