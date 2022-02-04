@@ -297,7 +297,7 @@ public class ShoppingListService {
         shoppingListRepository.delete(shoppingList);
         DeletedListResponse deletedListResponse =
                 new DeletedListResponse(shoppingList.getOwner().getUsername() + " tog bort " + shoppingList.getName(),
-                "/home", shoppingListId);
+                "/lists", shoppingListId);
         rabbitSender.publishDeletedResponse(deletedListResponse);
         return deletedListResponse;
 
