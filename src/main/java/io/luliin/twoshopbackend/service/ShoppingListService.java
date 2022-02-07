@@ -97,13 +97,27 @@ public class ShoppingListService {
                 createShoppingListInput.collaboratorCredential())
         ) {
             log.info("Collaborator present");
-            newShoppingList.setCollaborator(appUserRepository.findByUsernameOrEmail(
+            final AppUserEntity collaborator = appUserRepository.findByUsernameOrEmail(
                     createShoppingListInput.collaboratorCredential(),
                     createShoppingListInput.collaboratorCredential())
-                    .orElseThrow(() -> new RuntimeException("An unexpected error occurred while adding collaborator")));
-        }
-        return shoppingListRepository.save(newShoppingList);
+                    .orElseThrow(() -> new RuntimeException("An unexpected error occurred while adding collaborator"));
 
+            newShoppingList.setCollaborator(collaborator);
+
+            ShoppingList savedList = shoppingListRepository.save(newShoppingList);
+
+            rabbitSender.publishCollaboratorInvitedMessage(
+                    new UserPayload(collaborator.getUsername(),
+                            collaborator.getEmail(),
+                            collaborator.getFirstName(),
+                            collaborator.getLastName(),
+                            null,
+                            owner.getUsername(),
+                            savedList.getName()));
+            return savedList;
+        } else {
+            return shoppingListRepository.save(newShoppingList);
+        }
     }
 
     @PreAuthorize("isAuthenticated()")
