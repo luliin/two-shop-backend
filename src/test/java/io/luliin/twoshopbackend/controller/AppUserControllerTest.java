@@ -392,9 +392,8 @@ class AppUserControllerTest extends AbstractContainerBaseTest {
                 .execute()
                 .errors()
                 .satisfy(errors -> {
-                    assertThat(errors.get(0).getErrorType()).isEqualTo(graphql.ErrorType.ValidationError);
+                    assertThat(errors.get(0).getExtensions().containsValue(graphql.ErrorType.ValidationError)).isFalse();
                     assertThat(errors.get(0).getMessage()).isEqualTo(expectedErrorMessage);
-                    assertThat(errors.get(0).getPath()).contains("updateUser");
                 });
     }
 
@@ -469,7 +468,7 @@ class AppUserControllerTest extends AbstractContainerBaseTest {
                 .execute()
                 .errors()
                 .satisfy(errors -> {
-                    assertThat(errors).size().isEqualTo(1);
+                    assertThat(errors).size().isEqualTo(2);
                     assertThat(errors.get(0).getMessage()).isEqualTo(expectedMessage);
                     assertThat(errors.get(0).getErrorType()).isEqualTo(graphql.ErrorType.ValidationError);
                 });
@@ -524,7 +523,7 @@ class AppUserControllerTest extends AbstractContainerBaseTest {
                 .execute()
                 .errors()
                 .satisfy(errors -> {
-                    assertThat(errors).size().isEqualTo(1);
+                    assertThat(errors).size().isEqualTo(2);
                     assertThat(errors.get(0).getErrorType()).isEqualTo(graphql.ErrorType.ValidationError);
                     assertThat(errors.get(0).getMessage()).isEqualTo(expectedMessage);
                 });

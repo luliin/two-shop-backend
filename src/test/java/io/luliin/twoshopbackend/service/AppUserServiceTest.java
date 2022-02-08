@@ -1,9 +1,11 @@
 package io.luliin.twoshopbackend.service;
 
 import io.luliin.twoshopbackend.dto.AppUser;
+import io.luliin.twoshopbackend.dto.mail.UserPayload;
 import io.luliin.twoshopbackend.entity.AppUserEntity;
 import io.luliin.twoshopbackend.entity.UserRole;
 import io.luliin.twoshopbackend.input.AppUserInput;
+import io.luliin.twoshopbackend.messaging.RabbitSender;
 import io.luliin.twoshopbackend.repository.AppUserRepository;
 import io.luliin.twoshopbackend.repository.UserRoleRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +39,9 @@ class AppUserServiceTest {
     AppUserRepository mockUserRepo;
     @Mock
     UserRoleRepository mockRoleRepository;
+
+    @Mock
+    RabbitSender rabbitSender;
 
     @InjectMocks
     AppUserService appUserService;
